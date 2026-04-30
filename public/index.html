@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wax</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar-section sidebar-top">
+        <div class="brand">
+          <svg class="logo" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="9.5" stroke="currentColor" stroke-width="2"/>
+            <circle cx="12" cy="12" r="5.5" stroke="currentColor" stroke-width="1.4"/>
+            <circle cx="12" cy="12" r="1.8" fill="currentColor"/>
+          </svg>
+          <span>Wax</span>
+        </div>
+        <nav class="sidebar-nav">
+          <a class="sidebar-link" data-view="download">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2.2"/>
+              <path d="M21 21l-4.5-4.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            </svg>
+            <span>Rechercher</span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="sidebar-section sidebar-library">
+        <div class="sidebar-library-header">
+          <button class="library-title-btn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M3 5h18M3 12h18M3 19h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span>Ta bibliothèque</span>
+          </button>
+          <button class="icon-btn" id="create-playlist-btn" title="Nouvelle playlist" aria-label="Nouvelle playlist">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <ul class="library-items" id="library-items"></ul>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="content">
+        <section id="view-download" class="view active">
+          <header class="hero hero-download">
+            <div class="hero-content">
+              <span class="eyebrow">Recherche</span>
+              <h1>Que veux-tu écouter&nbsp;?</h1>
+              <p class="hero-meta">Tape un titre, un artiste — ou colle une URL YouTube</p>
+            </div>
+          </header>
+          <div class="page-body">
+            <form id="download-form" class="download-form" autocomplete="off">
+              <div class="input-group">
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+                  <path d="M21 21l-4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <input type="text" id="url-input" placeholder="Chase Atlantic, Daft Punk Around the World, ou une URL..." required>
+                <button type="button" id="paste-btn" class="paste-btn" title="Coller">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <rect x="9" y="3" width="6" height="3" rx="1" stroke="currentColor" stroke-width="2"/>
+                    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </button>
+              </div>
+
+              <div id="preview-card" class="preview-card" hidden>
+                <img id="preview-thumb" alt="">
+                <div class="preview-info">
+                  <div id="preview-title" class="preview-title"></div>
+                  <div id="preview-author" class="preview-author"></div>
+                </div>
+                <button type="button" id="preview-clear" class="icon-btn ghost" aria-label="Effacer">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </button>
+              </div>
+
+              <div id="playlist-source" class="playlist-source" hidden>
+                <div class="playlist-source-header">
+                  <strong>Playlist YouTube</strong>
+                  <span class="muted"><span id="playlist-selected">0</span> / <span id="playlist-total">0</span></span>
+                  <div class="batch-actions">
+                    <button type="button" class="link-btn" id="select-all-btn">Tout</button>
+                    <button type="button" class="link-btn" id="select-none-btn">Aucun</button>
+                  </div>
+                </div>
+                <ul id="playlist-source-list" class="playlist-source-list"></ul>
+              </div>
+
+              <button type="submit" class="primary-btn" id="submit-btn" hidden>
+                <span id="submit-label">Télécharger</span>
+              </button>
+            </form>
+
+            <p id="search-status" class="search-status" hidden></p>
+            <ul id="search-results" class="search-results" hidden></ul>
+
+            <div id="jobs-list" class="jobs-list"></div>
+          </div>
+        </section>
+
+        <section id="view-library" class="view">
+          <header class="hero hero-library">
+            <div class="hero-content">
+              <span class="eyebrow">Playlist</span>
+              <h1>Toutes les pistes</h1>
+              <p class="hero-meta"><span id="library-count">0</span> titres</p>
+            </div>
+          </header>
+          <div class="page-body">
+            <div class="action-row">
+              <button class="play-circle" id="play-library-btn" title="Tout lire">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <input type="search" id="library-search" class="page-search" placeholder="Rechercher une piste...">
+            </div>
+            <ul id="library-list" class="track-list"></ul>
+            <p id="library-empty" class="empty-state">Ta bibliothèque est vide. Télécharge ton premier morceau dans l'onglet « Télécharger ».</p>
+          </div>
+        </section>
+
+        <section id="view-smart" class="view">
+          <header class="hero hero-smart" id="hero-smart">
+            <div class="hero-content">
+              <span class="eyebrow" id="smart-eyebrow">Playlist auto</span>
+              <h1 id="smart-name">Auto</h1>
+              <p class="hero-meta" id="smart-meta"></p>
+            </div>
+          </header>
+          <div class="page-body">
+            <div class="action-row">
+              <button class="play-circle" id="play-smart-btn" title="Tout lire">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+            </div>
+            <ul id="smart-tracks" class="track-list"></ul>
+            <p id="smart-empty" class="empty-state">Aucune piste pour l'instant.</p>
+          </div>
+        </section>
+
+        <section id="view-playlist" class="view">
+          <header class="hero hero-playlist" id="hero-playlist">
+            <div class="hero-content">
+              <span class="eyebrow">Playlist</span>
+              <h1 id="pl-detail-name">Playlist</h1>
+              <p class="hero-meta" id="pl-detail-meta"></p>
+            </div>
+          </header>
+          <div class="page-body">
+            <div class="action-row">
+              <button class="play-circle" id="play-playlist-btn" title="Tout lire">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <button class="secondary-btn" id="add-tracks-btn">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                Ajouter
+              </button>
+              <button class="icon-btn round large" id="rename-playlist-btn" title="Renommer">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 20h9M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <button class="icon-btn round large danger" id="delete-playlist-btn" title="Supprimer">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+            <ul id="pl-detail-tracks" class="track-list"></ul>
+            <p id="pl-detail-empty" class="empty-state">Cette playlist est vide. Ajoute des pistes depuis la bibliothèque.</p>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer id="player" class="player" hidden>
+      <div class="player-track">
+        <img id="player-thumb" alt="" class="player-thumb">
+        <div class="player-info">
+          <div id="player-title" class="player-title"></div>
+          <div id="player-uploader" class="player-uploader"></div>
+        </div>
+      </div>
+      <div class="player-center">
+        <div class="player-controls">
+          <button class="icon-btn" id="player-shuffle" title="Aléatoire">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M16 3h5v5M4 20l16.2-16.2M21 16v5h-5M15 15l5.2 5.2M4 4l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button class="icon-btn" id="player-prev" title="Précédent">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M19 5v14l-12-7zM6 5h2v14H6z"/>
+            </svg>
+          </button>
+          <button class="icon-btn play-btn" id="player-toggle" title="Lecture/Pause">
+            <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+            <svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M6 4h4v16H6zM14 4h4v16h-4z"/>
+            </svg>
+          </button>
+          <button class="icon-btn" id="player-next" title="Suivant">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M5 5v14l12-7zM18 5h-2v14h2z"/>
+            </svg>
+          </button>
+          <button class="icon-btn" id="player-repeat" title="Répéter">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M17 1l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="player-progress">
+          <span id="player-current">0:00</span>
+          <input type="range" id="player-seek" min="0" max="100" value="0" step="0.1">
+          <span id="player-total">0:00</span>
+        </div>
+      </div>
+      <div class="player-volume">
+        <button class="icon-btn" id="player-like" title="Ajouter aux favoris">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="player-lyrics" title="Paroles">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="player-crossfade" title="Crossfade">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M3 17h6m0 0l-3-3m3 3l-3 3M21 7h-6m0 0l3-3m-3 3l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="player-queue" title="File d'attente">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M3 6h13M3 12h13M3 18h9M17 13l4 3-4 3v-6z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="player-mute" title="Muet">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M11 5L6 9H2v6h4l5 4V5zM15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <input type="range" id="player-volume" min="0" max="1" step="0.01" value="0.8">
+      </div>
+      <audio id="audio-element" preload="metadata"></audio>
+      <audio id="audio-element-2" preload="metadata"></audio>
+    </footer>
+
+    <aside id="queue-panel" class="queue-panel" hidden>
+      <div class="queue-header">
+        <h2>File d'attente</h2>
+        <button class="icon-btn" id="close-queue" aria-label="Fermer">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="queue-body">
+        <div class="queue-section">
+          <h3>En cours</h3>
+          <ul id="queue-current" class="queue-list"></ul>
+        </div>
+        <div class="queue-section">
+          <h3>À suivre</h3>
+          <ul id="queue-upcoming" class="queue-list"></ul>
+          <p id="queue-empty" class="empty-state">Plus rien après celle-ci.</p>
+        </div>
+      </div>
+    </aside>
+
+    <div id="modal" class="modal" hidden>
+      <div class="modal-overlay"></div>
+      <div class="modal-content">
+        <h3 id="modal-title">Titre</h3>
+        <div id="modal-body"></div>
+        <div class="modal-actions">
+          <button class="secondary-btn" id="modal-cancel">Annuler</button>
+          <button class="primary-btn" id="modal-confirm" hidden>OK</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" hidden></div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

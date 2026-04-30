@@ -1,0 +1,7 @@
+node_modules/
+.DS_Store
+*.log
+library/audio/
+library/previews/
+library/library.json
+library/playlists.json
