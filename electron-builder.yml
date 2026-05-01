@@ -51,8 +51,16 @@ nsis:
 
 linux:
   category: AudioVideo
+  maintainer: "Dylan <encheres.nc@gmail.com>"
+  # Note: rpm target requires a native rpmbuild on Linux (electron-builder's
+  # bundled fpm 1.9.3 is incompatible with macOS rpm 4.20+); Fedora/RedHat
+  # users can run the AppImage instead.
   target:
     - target: AppImage
+      arch:
+        - x64
+        - arm64
+    - target: deb
       arch:
         - x64
         - arm64
