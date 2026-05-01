@@ -5,12 +5,79 @@ const fs = require('fs');
 const crypto = require('crypto');
 const https = require('https');
 
+const ytAgent = new https.Agent({ keepAlive: true, maxSockets: 10, maxFreeSockets: 5 });
+
+// Allow Electron-packaged builds to point at bundled binaries via env vars.
+// Falls back to the system PATH lookup, preserving old behavior.
+const YT_DLP_BIN = process.env.WAX_YT_DLP || 'yt-dlp';
+const FFMPEG_BIN = process.env.WAX_FFMPEG || '';
+const ytdlpExtraArgs = FFMPEG_BIN ? ['--ffmpeg-location', FFMPEG_BIN] : [];
+
+const streamUrlCache = new Map(); // videoId -> { url, expiry }
+const inflightStreamUrls = new Map(); // videoId -> Promise<url>
+
+// Bound concurrency on yt-dlp child processes — prefetch storms (10 results
+// + a mix of 50) would otherwise saturate the CPU and cause 30s+ stalls.
+const YTDLP_MAX_PARALLEL = 3;
+let ytdlpActive = 0;
+const ytdlpQueue = [];
+function runYtDlp(fn) {
+  return new Promise((resolve, reject) => {
+    const task = () => {
+      ytdlpActive++;
+      fn().then(resolve, reject).finally(() => {
+        ytdlpActive--;
+        const next = ytdlpQueue.shift();
+        if (next) next();
+      });
+    };
+    if (ytdlpActive < YTDLP_MAX_PARALLEL) task();
+    else ytdlpQueue.push(task);
+  });
+}
+
+function getStreamUrlViaYtDlp(videoId) {
+  return runYtDlp(() => new Promise((resolve, reject) => {
+    const ytdlp = spawn(YT_DLP_BIN, [
+      '-f', 'bestaudio[ext=m4a]/bestaudio',
+      '-g',
+      '--no-playlist',
+      '--no-warnings',
+      `https://www.youtube.com/watch?v=${videoId}`,
+    ]);
+    let out = '', err = '';
+    ytdlp.stdout.on('data', d => { out += d; });
+    ytdlp.stderr.on('data', d => { err += d; });
+    ytdlp.on('error', reject);
+    ytdlp.on('close', code => {
+      if (code !== 0 || !out.trim()) return reject(new Error(err.slice(-200) || 'yt-dlp failed'));
+      resolve(out.trim().split('\n')[0]);
+    });
+  }));
+}
+
+function getStreamUrl(videoId) {
+  const cached = streamUrlCache.get(videoId);
+  if (cached && cached.expiry > Date.now()) return Promise.resolve(cached.url);
+  const inflight = inflightStreamUrls.get(videoId);
+  if (inflight) return inflight;
+
+  const promise = (async () => {
+    const url = await getStreamUrlViaYtDlp(videoId);
+    streamUrlCache.set(videoId, { url, expiry: Date.now() + 5 * 3600 * 1000 });
+    return url;
+  })().finally(() => inflightStreamUrls.delete(videoId));
+
+  inflightStreamUrls.set(videoId, promise);
+  return promise;
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 const ROOT = __dirname;
-const PUBLIC_DIR = path.join(ROOT, 'public');
-const LIBRARY_DIR = path.join(ROOT, 'library');
+const PUBLIC_DIR = process.env.WAX_PUBLIC_DIR || path.join(ROOT, 'public');
+const LIBRARY_DIR = process.env.WAX_LIBRARY_DIR || path.join(ROOT, 'library');
 const AUDIO_DIR = path.join(LIBRARY_DIR, 'audio');
 const PREVIEW_DIR = path.join(LIBRARY_DIR, 'previews');
 const LIBRARY_FILE = path.join(LIBRARY_DIR, 'library.json');
@@ -55,6 +122,40 @@ function fetchJson(url) {
   });
 }
 
+app.get('/api/mix/:videoId', (req, res) => {
+  const id = req.params.videoId;
+  if (!/^[A-Za-z0-9_-]{6,15}$/.test(id)) return res.status(400).json({ error: 'ID invalide' });
+
+  const mixUrl = `https://www.youtube.com/playlist?list=RD${id}`;
+  const ytdlp = spawn(YT_DLP_BIN, [
+    '--flat-playlist',
+    '--skip-download',
+    '--print', '%(id)s|||%(title)s|||%(uploader)s|||%(duration)s',
+    '--no-warnings',
+    '--playlist-end', '50',
+    mixUrl,
+  ]);
+  let out = '', err = '';
+  ytdlp.stdout.on('data', d => { out += d; });
+  ytdlp.stderr.on('data', d => { err += d; });
+  ytdlp.on('error', () => res.status(500).json({ error: 'yt-dlp indisponible' }));
+  ytdlp.on('close', code => {
+    if (code !== 0) return res.status(500).json({ error: 'Mix indisponible', details: err.slice(-200) });
+    const tracks = out.split('\n').filter(l => l.trim()).map(line => {
+      const [vid, title, uploader, duration] = line.split('|||');
+      return {
+        id: vid,
+        title: title || 'Sans titre',
+        uploader: uploader === 'NA' ? '' : (uploader || ''),
+        duration: parseFloat(duration) || 0,
+        url: `https://www.youtube.com/watch?v=${vid}`,
+        thumbnail: `https://i.ytimg.com/vi/${vid}/mqdefault.jpg`,
+      };
+    });
+    res.json({ tracks });
+  });
+});
+
 app.get('/api/lyrics', (req, res) => {
   const artist = String(req.query.artist || '').trim();
   const title = String(req.query.title || '').trim();
@@ -97,6 +198,53 @@ app.get('/api/info', async (req, res) => {
   }
 });
 
+app.post('/api/stream/:videoId/prefetch', async (req, res) => {
+  const id = req.params.videoId;
+  if (!/^[A-Za-z0-9_-]{6,15}$/.test(id)) return res.status(400).json({ error: 'ID invalide' });
+  try {
+    await getStreamUrl(id);
+    res.json({ ok: true, cached: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'failed' });
+  }
+});
+
+app.get('/api/stream/:videoId', async (req, res) => {
+  const id = req.params.videoId;
+  if (!/^[A-Za-z0-9_-]{6,15}$/.test(id)) return res.status(400).end();
+
+  let aborted = false;
+  let upstream = null;
+  req.on('close', () => { aborted = true; if (upstream) upstream.destroy(); });
+
+  let audioUrl;
+  try {
+    audioUrl = await getStreamUrl(id);
+  } catch {
+    if (!res.headersSent) res.status(500).end();
+    return;
+  }
+  if (aborted) return;
+
+  const opts = { agent: ytAgent, headers: { 'User-Agent': 'Mozilla/5.0' } };
+  if (req.headers.range) opts.headers['Range'] = req.headers.range;
+
+  upstream = https.get(audioUrl, opts, (audioRes) => {
+    if (aborted) { audioRes.destroy(); return; }
+    res.statusCode = audioRes.statusCode;
+    ['content-type', 'content-length', 'content-range', 'accept-ranges'].forEach(h => {
+      if (audioRes.headers[h]) res.setHeader(h, audioRes.headers[h]);
+    });
+    audioRes.pipe(res);
+    req.on('close', () => audioRes.destroy());
+  });
+  upstream.on('error', () => {
+    // URL might have expired, invalidate cache
+    streamUrlCache.delete(id);
+    if (!res.headersSent) res.status(500).end();
+  });
+});
+
 app.get('/api/preview/:videoId', (req, res) => {
   const id = req.params.videoId;
   if (!/^[A-Za-z0-9_-]{6,15}$/.test(id)) return res.status(400).json({ error: 'ID invalide' });
@@ -109,7 +257,8 @@ app.get('/api/preview/:videoId', (req, res) => {
   }
 
   const outTemplate = path.join(PREVIEW_DIR, `${id}.%(ext)s`);
-  const ytdlp = spawn('yt-dlp', [
+  const ytdlp = spawn(YT_DLP_BIN, [
+    ...ytdlpExtraArgs,
     '-x',
     '--audio-format', 'mp3',
     '--audio-quality', '5',
@@ -143,7 +292,7 @@ app.get('/api/search', (req, res) => {
   if (!q) return res.json({ results: [] });
   if (q.length > 200) return res.status(400).json({ error: 'Requête trop longue' });
 
-  const ytdlp = spawn('yt-dlp', [
+  const ytdlp = spawn(YT_DLP_BIN, [
     `ytsearch10:${q}`,
     '--flat-playlist',
     '--skip-download',
@@ -175,7 +324,7 @@ app.get('/api/playlist-info', (req, res) => {
   const url = String(req.query.url || '').trim();
   if (!YT_REGEX.test(url)) return res.status(400).json({ error: 'URL invalide' });
 
-  const ytdlp = spawn('yt-dlp', [
+  const ytdlp = spawn(YT_DLP_BIN, [
     '--flat-playlist',
     '--skip-download',
     '--print', '%(id)s|||%(title)s|||%(uploader)s|||%(duration)s',
@@ -223,17 +372,20 @@ function startJob(job) {
   const infoJsonFile = path.join(AUDIO_DIR, `${job.trackId}.info.json`);
   const outputTemplate = path.join(AUDIO_DIR, `${job.trackId}.%(ext)s`);
 
-  const lib = getLibrary();
-  if (lib.some(t => t.url === job.url)) {
-    const existing = lib.find(t => t.url === job.url);
-    job.status = 'ready';
-    job.progress = 100;
-    job.track = existing;
-    setTimeout(() => broadcast(job, { type: 'ready', track: existing, duplicate: true }), 50);
-    return;
+  if (!job.updateExisting) {
+    const lib = getLibrary();
+    if (lib.some(t => t.url === job.url && t.file)) {
+      const existing = lib.find(t => t.url === job.url && t.file);
+      job.status = 'ready';
+      job.progress = 100;
+      job.track = existing;
+      setTimeout(() => broadcast(job, { type: 'ready', track: existing, duplicate: true }), 50);
+      return;
+    }
   }
 
   const args = [
+    ...ytdlpExtraArgs,
     '-x',
     '--audio-format', 'mp3',
     '--audio-quality', `${job.bitrate}K`,
@@ -245,7 +397,7 @@ function startJob(job) {
     job.url,
   ];
 
-  const ytdlp = spawn('yt-dlp', args);
+  const ytdlp = spawn(YT_DLP_BIN, args);
   job.status = 'downloading';
   job.phase = 'download';
   let stderr = '';
@@ -290,23 +442,32 @@ function startJob(job) {
     let info = {};
     try { info = JSON.parse(fs.readFileSync(infoJsonFile, 'utf8')); } catch {}
 
-    const safeTitle = String(info.title || 'Sans titre').replace(/[\/\\:*?"<>|]/g, '').slice(0, 200);
-    const track = {
-      id: job.trackId,
-      title: safeTitle,
-      uploader: info.uploader || info.channel || '',
-      duration: info.duration || 0,
-      thumbnail: info.thumbnail || (info.id ? `https://i.ytimg.com/vi/${info.id}/mqdefault.jpg` : ''),
-      ytId: info.id || '',
-      url: info.webpage_url || job.url,
-      bitrate: job.bitrate,
-      file: `/audio/${job.trackId}.mp3`,
-      addedAt: Date.now(),
-    };
-
+    let track;
     const currentLib = getLibrary();
-    currentLib.unshift(track);
-    saveLibrary(currentLib);
+    if (job.updateExisting) {
+      track = currentLib.find(t => t.id === job.trackId);
+      if (track) {
+        track.file = `/audio/${job.trackId}.mp3`;
+        if (!track.duration && info.duration) track.duration = info.duration;
+        saveLibrary(currentLib);
+      }
+    } else {
+      const safeTitle = String(info.title || 'Sans titre').replace(/[\/\\:*?"<>|]/g, '').slice(0, 200);
+      track = {
+        id: job.trackId,
+        title: safeTitle,
+        uploader: info.uploader || info.channel || '',
+        duration: info.duration || 0,
+        thumbnail: info.thumbnail || (info.id ? `https://i.ytimg.com/vi/${info.id}/mqdefault.jpg` : ''),
+        ytId: info.id || '',
+        url: info.webpage_url || job.url,
+        bitrate: job.bitrate,
+        file: `/audio/${job.trackId}.mp3`,
+        addedAt: Date.now(),
+      };
+      currentLib.unshift(track);
+      saveLibrary(currentLib);
+    }
 
     try { fs.unlinkSync(infoJsonFile); } catch {}
 
@@ -370,6 +531,65 @@ app.get('/api/jobs/:id/progress', (req, res) => {
 
 app.get('/api/library', (req, res) => {
   res.json({ tracks: getLibrary() });
+});
+
+app.post('/api/library/add', (req, res) => {
+  const { ytId, title, uploader, duration, thumbnail, url } = req.body || {};
+  if (!ytId || !title) return res.status(400).json({ error: 'ytId + title requis' });
+  const lib = getLibrary();
+  const existing = lib.find(t => t.ytId === ytId);
+  if (existing) return res.json({ track: existing, duplicate: true });
+  const id = crypto.randomBytes(6).toString('hex');
+  const track = {
+    id,
+    title: String(title).slice(0, 200),
+    uploader: uploader || '',
+    duration: parseFloat(duration) || 0,
+    thumbnail: thumbnail || `https://i.ytimg.com/vi/${ytId}/mqdefault.jpg`,
+    ytId,
+    url: url || `https://www.youtube.com/watch?v=${ytId}`,
+    file: null,
+    addedAt: Date.now(),
+  };
+  lib.unshift(track);
+  saveLibrary(lib);
+  res.json({ track });
+});
+
+app.post('/api/library/:trackId/download', (req, res) => {
+  const lib = getLibrary();
+  const track = lib.find(t => t.id === req.params.trackId);
+  if (!track) return res.status(404).json({ error: 'Piste introuvable' });
+  if (track.file) return res.status(409).json({ error: 'Déjà téléchargée' });
+  const id = crypto.randomBytes(8).toString('hex');
+  const job = {
+    id,
+    trackId: track.id,
+    url: track.url,
+    bitrate: '320',
+    progress: 0,
+    phase: 'starting',
+    status: 'pending',
+    track: null,
+    error: null,
+    listeners: new Set(),
+    createdAt: Date.now(),
+    updateExisting: true,
+  };
+  jobs.set(id, job);
+  setImmediate(() => startJob(job));
+  res.json({ id, trackId: track.id });
+});
+
+app.delete('/api/library/:trackId/download', (req, res) => {
+  const lib = getLibrary();
+  const track = lib.find(t => t.id === req.params.trackId);
+  if (!track) return res.status(404).json({ error: 'Piste introuvable' });
+  if (!track.file) return res.status(409).json({ error: 'Pas téléchargée' });
+  try { fs.unlinkSync(path.join(AUDIO_DIR, `${track.id}.mp3`)); } catch {}
+  track.file = null;
+  saveLibrary(lib);
+  res.json({ track });
 });
 
 app.put('/api/library/order', (req, res) => {

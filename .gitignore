@@ -5,3 +5,12 @@ library/audio/
 library/previews/
 library/library.json
 library/playlists.json
+
+# Build outputs
+dist/
+release/
+out/
+.vite/
+
+# Legacy snapshot of pre-Vue frontend (kept for reference, not bundled)
+legacy-public/

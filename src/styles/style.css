@@ -105,12 +105,30 @@ a { color: inherit; text-decoration: none; }
 
 .brand {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  margin-bottom: 12px;
+  align-items: flex-start;
+  padding: 0 12px;
+  margin-bottom: 4px;
+  -webkit-app-region: drag;
 }
-.brand .logo { width: 28px; height: 28px; color: var(--accent); flex-shrink: 0; transition: var(--t-accent); }
+.brand img,
+.brand button,
+.brand a { -webkit-app-region: no-drag; }
+
+/* Make the entire top area of the sidebar a drag region for window movement
+   (Electron with hiddenInset titleBarStyle). Buttons/links inside opt-out. */
+.sidebar-section.sidebar-top { -webkit-app-region: drag; padding-top: 28px; }
+.sidebar-section.sidebar-top button,
+.sidebar-section.sidebar-top a,
+.sidebar-section.sidebar-top input { -webkit-app-region: no-drag; }
+.brand .logo {
+  max-width: 100%;
+  height: auto;
+  max-height: 72px;
+  object-fit: contain;
+  object-position: left top;
+  display: block;
+  margin-left: -8px;
+}
 .brand span {
   font-family: var(--font-body);
   font-weight: 800;
@@ -653,13 +671,32 @@ input:focus, input:focus-visible { outline: none; }
 }
 .track {
   display: grid;
-  grid-template-columns: 32px 48px 1fr auto auto;
+  grid-template-columns: 32px 48px 1fr 20px auto auto;
   gap: 12px;
   align-items: center;
   padding: 6px 16px;
   border-radius: 4px;
   transition: background 0.1s ease;
   position: relative;
+}
+
+/* Persistent offline indicator (always visible — sits between meta and duration). */
+.track-offline-indicator {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.track-offline-indicator svg { width: 16px; height: 16px; }
+.track-offline-indicator.empty { /* invisible placeholder to keep grid alignment */ }
+.track-offline-indicator.is-done { color: var(--accent-bright); }
+.track-offline-indicator.is-downloading { color: var(--accent-bright); }
+.track-offline-indicator.is-downloading .ring-progress { transition: stroke-dashoffset 0.2s linear; }
+.track-offline-indicator.is-downloading svg.is-converting { animation: ringPulse 1.2s ease-in-out infinite; }
+@keyframes ringPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
 }
 .track:hover { background: rgba(255, 255, 255, 0.06); }
 .track.is-playing .track-title { color: var(--accent-bright); }
@@ -745,6 +782,10 @@ input:focus, input:focus-visible { outline: none; }
   gap: 4px;
   opacity: 0;
   transition: opacity 0.15s ease;
+  /* Reserve fixed slot so the duration column doesn't shift between rows
+     that have 3 vs 4 buttons (e.g. downloaded vs not-yet-downloaded). */
+  justify-content: flex-end;
+  min-width: 144px;
 }
 .track:hover .track-actions { opacity: 1; }
 .track-actions .icon-btn { width: 32px; height: 32px; }
@@ -783,7 +824,7 @@ input:focus, input:focus-visible { outline: none; }
 }
 body.viz-running .eq.is-playing rect {
   animation: none !important;
-  transition: transform 0.05s ease-out;
+  transition: transform 0.04s ease-out;
 }
 
 #player-like { color: var(--text-soft); }
@@ -1243,6 +1284,69 @@ input[type="range"]:hover::-moz-range-track {
 .lyrics-content.placeholder { color: var(--text-soft); font-style: italic; }
 .lyrics-content.error { color: var(--text-soft); }
 
+/* Settings */
+.settings-section { margin-bottom: 16px; }
+.settings-section h4,
+.settings-subhead {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.settings-subhead { margin-top: 20px; margin-bottom: 12px; }
+.settings-help {
+  color: var(--text-soft);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin-bottom: 0;
+}
+.settings-mode-row {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+.settings-mode {
+  flex: 1;
+  padding: 10px 16px;
+  background: #2a2a2a;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--text-soft);
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.settings-mode:hover { color: var(--text); }
+.settings-mode.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-bright);
+}
+
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 10px;
+  transition: opacity 0.2s ease;
+}
+.color-swatch {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  padding: 0;
+  outline: none;
+}
+.color-swatch:hover { transform: scale(1.12); }
+.color-swatch.active {
+  border-color: var(--text);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.15);
+}
+
 /* Toast */
 .toast {
   position: fixed;
@@ -1289,6 +1393,108 @@ input[type="range"]:hover::-moz-range-track {
   padding: 8px 12px;
   border-radius: 4px;
   transition: background 0.1s ease;
+}
+
+.add-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.add-btn:hover:not(:disabled) {
+  border-color: var(--text);
+  color: var(--text);
+  transform: scale(1.06);
+}
+.add-btn:disabled { cursor: default; }
+.add-btn svg { width: 14px; height: 14px; }
+.add-btn.is-loading {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+}
+.add-btn.is-done {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-bright);
+}
+.fav-btn { border-color: var(--border); }
+.fav-btn:hover:not(:disabled) {
+  border-color: var(--accent-bright);
+  color: var(--accent-bright);
+}
+.fav-btn.is-favorited {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-soft);
+}
+.fav-btn.is-favorited svg { fill: var(--accent-bright); }
+.fav-btn.is-favorited:hover { border-color: var(--accent-bright); }
+
+.offline-status { cursor: default; }
+.offline-status:hover { background: transparent; transform: none; }
+.offline-status.is-done { color: var(--accent-bright); }
+.offline-status.is-downloading { color: var(--accent-bright); opacity: 1; }
+.offline-status.is-downloading:hover { color: var(--accent-bright); background: transparent; }
+
+.offline-ring { width: 22px; height: 22px; }
+.offline-ring .ring-progress {
+  transform: rotate(-90deg);
+  transform-origin: 12px 12px;
+  transition: stroke-dashoffset 0.25s linear;
+}
+.offline-status.is-converting .offline-ring .ring-progress {
+  animation: ringPulse 1.2s ease-in-out infinite;
+}
+@keyframes ringPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.offline-btn { color: var(--text-soft); }
+.offline-btn:hover { color: var(--text); }
+
+.stream-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: none;
+  color: #000;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+.stream-btn:hover {
+  background: var(--accent-bright);
+  transform: scale(1.06);
+}
+.stream-btn svg { width: 14px; height: 14px; }
+.stream-btn.is-playing { background: var(--accent-bright); }
+.stream-btn.is-loading { pointer-events: none; }
+.stream-btn.is-loading svg { display: none; }
+.stream-btn.is-loading::after {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border: 2px solid #000;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
 }
 
 .preview-btn {

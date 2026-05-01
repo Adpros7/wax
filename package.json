@@ -2,10 +2,34 @@
   "name": "wax",
   "version": "1.0.0",
   "private": true,
+  "description": "Wax — desktop music app (YouTube → MP3 + streaming)",
+  "main": "electron/main.cjs",
   "scripts": {
-    "start": "node server.js"
+    "server": "node server.js",
+    "vite": "vite",
+    "electron": "electron .",
+    "dev:vite": "vite",
+    "dev:electron": "wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .",
+    "dev": "concurrently -k -n vite,electron -c \"magenta,cyan\" \"npm:dev:vite\" \"npm:dev:electron\"",
+    "build": "vite build",
+    "dist:mac": "npm run build && electron-builder --mac --config electron-builder.yml",
+    "dist:win": "npm run build && electron-builder --win --config electron-builder.yml",
+    "dist:linux": "npm run build && electron-builder --linux --config electron-builder.yml",
+    "postinstall": "electron-builder install-app-deps || true"
   },
   "dependencies": {
-    "express": "^4.21.0"
+    "@distube/ytdl-core": "^4.16.12",
+    "express": "^4.21.0",
+    "pinia": "^2.2.4",
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1",
+    "concurrently": "^9.1.0",
+    "cross-env": "^7.0.3",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "vite": "^5.4.11",
+    "wait-on": "^8.0.1"
   }
 }

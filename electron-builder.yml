@@ -1,0 +1,54 @@
+appId: com.wax.app
+productName: Wax
+directories:
+  output: release
+files:
+  - dist/**/*
+  - electron/**/*
+  - server.js
+  - package.json
+  - "!**/*.map"
+  - "!**/*.ts"
+
+# Bundle yt-dlp + ffmpeg if they exist locally under build/bin/<platform>/.
+# If absent, we fall back to system PATH (server.js handles that gracefully).
+extraResources:
+  - from: "build/bin/${os}/${arch}/"
+    to: "bin/"
+    filter:
+      - "**/*"
+
+mac:
+  category: public.app-category.music
+  icon: build/icon.icns
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+  hardenedRuntime: false
+  gatekeeperAssess: false
+
+dmg:
+  title: "Wax"
+  icon: build/icon.icns
+
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+
+linux:
+  category: AudioVideo
+  target:
+    - AppImage
+
+asar: true
+compression: normal
