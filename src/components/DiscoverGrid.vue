@@ -7,6 +7,11 @@ const discover = useDiscoverStore();
 const player = usePlayerStore();
 
 const queueIds = computed(() => discover.tracks.map((t) => t.id));
+const currentId = computed(() => player.queue[player.index] || null);
+
+function isLoading(track) {
+  return player.loading && currentId.value === track.id;
+}
 
 function play(track) {
   player.playFromList(track.id, queueIds.value);
@@ -46,9 +51,13 @@ function play(track) {
         v-for="t in discover.tracks"
         :key="t.id"
         class="discover-card"
+        :class="{ 'is-loading': isLoading(t) }"
         @click="play(t)"
       >
-        <img :src="t.thumbnail" alt="" loading="lazy" />
+        <div class="discover-card-cover">
+          <img :src="t.thumbnail" alt="" loading="lazy" />
+          <div v-if="isLoading(t)" class="discover-card-spinner" aria-label="Chargement…"></div>
+        </div>
         <div class="discover-card-meta">
           <div class="discover-card-title">{{ t.title }}</div>
           <div class="discover-card-sub">{{ t.uploader }}</div>

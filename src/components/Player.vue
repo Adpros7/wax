@@ -89,12 +89,15 @@ watch(
 <template>
   <footer id="player" class="player" :hidden="!player.visible">
     <div class="player-track">
-      <img
-        id="player-thumb"
-        class="player-thumb"
-        :src="player.currentTrack?.thumbnail || ''"
-        alt=""
-      />
+      <div class="player-thumb-wrap" :class="{ 'is-loading': player.loading }">
+        <img
+          id="player-thumb"
+          class="player-thumb"
+          :src="player.currentTrack?.thumbnail || ''"
+          alt=""
+        />
+        <div v-if="player.loading" class="player-thumb-spinner" aria-label="Chargement…"></div>
+      </div>
       <div class="player-info">
         <div class="player-title">{{ player.currentTrack?.title || '' }}</div>
         <div class="player-uploader">{{ player.currentTrack?.uploader || '' }}</div>
