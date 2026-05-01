@@ -196,17 +196,30 @@ function togglePlaylistTrack(id) { search.togglePlaylistTrack(id); }
         </button>
       </form>
 
+      <ul
+        class="track-list track-list-skeleton"
+        v-if="search.status === 'searching'"
+        aria-busy="true"
+      >
+        <li v-for="i in 6" :key="i" class="track track-skeleton">
+          <span class="skeleton-block skel-num"></span>
+          <span class="skeleton-block skel-thumb"></span>
+          <span class="skeleton-block skel-title"></span>
+          <span class="skeleton-block skel-indicator"></span>
+          <span class="skeleton-block skel-duration"></span>
+          <span class="skeleton-block skel-actions"></span>
+        </li>
+      </ul>
       <p
-        id="search-status"
-        :class="['search-status', { error: search.status === 'error' }]"
-        :hidden="!search.statusMessage"
+        v-else-if="search.status === 'error'"
+        class="search-status error"
       >
         {{ search.statusMessage }}
       </p>
 
       <ul
         class="track-list"
-        :hidden="searchTracks.length === 0"
+        v-if="search.status !== 'searching' && searchTracks.length > 0"
       >
         <TrackRow
           v-for="(t, i) in searchTracks"

@@ -3,16 +3,20 @@ productName: Wax
 directories:
   output: release
 files:
-  - dist/**/*
   - electron/**/*
   - server.js
   - package.json
   - "!**/*.map"
   - "!**/*.ts"
 
-# Bundle yt-dlp + ffmpeg if they exist locally under build/bin/<platform>/.
-# If absent, we fall back to system PATH (server.js handles that gracefully).
+# dist/ ships outside asar so the forked Express child can serve it with
+# plain fs (no asar fs hooks in the child process). yt-dlp + ffmpeg are
+# optional bundles under build/bin/<platform>/; if absent we use system PATH.
 extraResources:
+  - from: "dist"
+    to: "dist"
+    filter:
+      - "**/*"
   - from: "build/bin/${os}/${arch}/"
     to: "bin/"
     filter:
@@ -48,7 +52,10 @@ nsis:
 linux:
   category: AudioVideo
   target:
-    - AppImage
+    - target: AppImage
+      arch:
+        - x64
+        - arm64
 
 asar: true
 compression: normal

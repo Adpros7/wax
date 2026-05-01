@@ -153,22 +153,54 @@ export const useLibraryStore = defineStore('library', {
       if (track.isStream) {
         const existing = this.tracks.find((t) => t.ytId === track.ytId);
         if (existing) {
-          // Toggle the liked flag on the existing library entry.
-          await this._setLiked(existing.id, !(existing.liked !== false));
+          this._setLiked(existing.id, !(existing.liked !== false));
         } else {
-          // Stream not in library — add as favorite.
-          await this.add({
-            id: track.ytId,
+          this._optimisticAddFavorite(track);
+        }
+      } else {
+        this._setLiked(track.id, !(track.liked !== false));
+      }
+    },
+    // Insert a synthetic favorite immediately so the heart UI flips on click,
+    // then sync to the server. The server returns a canonical track which
+    // replaces the optimistic placeholder; on failure we revert.
+    async _optimisticAddFavorite(track) {
+      const optimistic = {
+        id: track.ytId,
+        ytId: track.ytId,
+        title: track.title,
+        uploader: track.uploader,
+        duration: track.duration,
+        thumbnail: track.thumbnail,
+        url: `https://www.youtube.com/watch?v=${track.ytId}`,
+        liked: true,
+        addedAt: Date.now(),
+        _optimistic: true,
+      };
+      this.tracks.unshift(optimistic);
+      showToast('Ajouté aux favoris', 'success');
+      try {
+        const data = await api('/api/library/add', {
+          method: 'POST',
+          body: JSON.stringify({
+            ytId: track.ytId,
             title: track.title,
             uploader: track.uploader,
             duration: track.duration,
             thumbnail: track.thumbnail,
             url: `https://www.youtube.com/watch?v=${track.ytId}`,
-          });
-        }
-      } else {
-        // Track is already in library — just flip its liked flag.
-        await this._setLiked(track.id, !(track.liked !== false));
+            liked: true,
+          }),
+        });
+        // Pinia/Vue wraps state in proxies, so `t === optimistic` (raw)
+        // never matches. Locate by the synthetic flag + ytId instead.
+        const idx = this.tracks.findIndex((t) => t._optimistic && t.ytId === track.ytId);
+        if (data.track && idx !== -1) this.tracks.splice(idx, 1, data.track);
+        else if (idx !== -1) this.tracks.splice(idx, 1);
+      } catch (e) {
+        const idx = this.tracks.findIndex((t) => t._optimistic && t.ytId === track.ytId);
+        if (idx !== -1) this.tracks.splice(idx, 1);
+        showToast('Erreur : ' + e.message, 'error');
       }
     },
     async _setLiked(trackId, liked) {

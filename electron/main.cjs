@@ -1,8 +1,8 @@
 // Electron main process — boots the Express backend and a BrowserWindow.
 //
 // In dev (NODE_ENV=development) the renderer loads http://localhost:5173 (Vite).
-// In prod it loads dist/index.html. The Express backend is forked as a child
-// process on PORT=3000; the renderer hits /api/* directly.
+// In prod it loads http://localhost:<SERVER_PORT> — Express serves the built
+// SPA (dist/) AND the /api/* endpoints from the same origin so fetches work.
 //
 // Bundled binaries (yt-dlp / ffmpeg) are detected via electron-builder
 // extraResources; if missing we silently fall back to the system PATH.
@@ -10,6 +10,7 @@
 const { app, BrowserWindow, shell, dialog } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
+const http = require('node:http');
 const { fork } = require('node:child_process');
 
 const isDev = process.env.NODE_ENV === 'development' || !!process.env.VITE_DEV_SERVER_URL;
@@ -51,6 +52,17 @@ function resolveLibraryDir() {
   return path.join(app.getPath('userData'), 'library');
 }
 
+function buildSpawnPath() {
+  const extras = process.platform === 'win32'
+    ? []
+    : ['/opt/homebrew/bin', '/usr/local/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin'];
+  const seen = new Set();
+  const parts = [process.env.PATH || '', ...extras]
+    .flatMap((p) => p.split(path.delimiter))
+    .filter((p) => p && !seen.has(p) && (seen.add(p), true));
+  return parts.join(path.delimiter);
+}
+
 function resolvePublicDir() {
   // server.js still wants a PUBLIC_DIR (legacy static mount); we point it at
   // an empty dir or the dist if present so it doesn't crash.
@@ -75,6 +87,10 @@ function startServer() {
     PORT: SERVER_PORT,
     WAX_LIBRARY_DIR: resolveLibraryDir(),
     WAX_PUBLIC_DIR: resolvePublicDir(),
+    // Apps launched from Finder/LaunchServices inherit a minimal PATH that
+    // doesn't include /opt/homebrew/bin or /usr/local/bin, so spawn('yt-dlp')
+    // would ENOENT and crash the server. Augment PATH so user installs work.
+    PATH: buildSpawnPath(),
   };
   const ytDlp = resolveBundledBinary('yt-dlp');
   if (ytDlp) env.WAX_YT_DLP = ytDlp;
@@ -133,18 +149,43 @@ function createWindow() {
     return { action: 'deny' };
   });
 
-  if (isDev) {
-    mainWindow.loadURL(VITE_URL);
-  } else {
-    const indexHtml = path.join(__dirname, '..', 'dist', 'index.html');
-    const fallback = path.join(process.resourcesPath, 'dist', 'index.html');
-    const target = fs.existsSync(indexHtml) ? indexHtml : fallback;
-    mainWindow.loadFile(target).catch((err) => {
-      dialog.showErrorBox('Wax', `Cannot load UI: ${err.message}`);
-    });
-  }
+  const targetUrl = isDev ? VITE_URL : `http://localhost:${SERVER_PORT}`;
+  loadWhenReady(mainWindow, targetUrl);
 
   mainWindow.on('closed', () => { mainWindow = null; });
+}
+
+// Wait for the backend (or Vite) to answer before loading the URL — avoids the
+// "ERR_CONNECTION_REFUSED" white screen on cold start in production.
+function loadWhenReady(win, url, attempt = 0) {
+  const MAX_ATTEMPTS = 60; // ~30 s total
+  pingUrl(url, (ok) => {
+    if (!win || win.isDestroyed()) return;
+    if (ok) {
+      win.loadURL(url).catch((err) => {
+        dialog.showErrorBox('Wax', `Cannot load UI: ${err.message}`);
+      });
+      return;
+    }
+    if (attempt >= MAX_ATTEMPTS) {
+      dialog.showErrorBox('Wax', `Backend did not start at ${url}.`);
+      return;
+    }
+    setTimeout(() => loadWhenReady(win, url, attempt + 1), 500);
+  });
+}
+
+function pingUrl(url, cb) {
+  try {
+    const req = http.get(url, { timeout: 1000 }, (res) => {
+      res.resume();
+      cb(true);
+    });
+    req.on('error', () => cb(false));
+    req.on('timeout', () => { req.destroy(); cb(false); });
+  } catch {
+    cb(false);
+  }
 }
 
 // ----------------------------------------------------------------

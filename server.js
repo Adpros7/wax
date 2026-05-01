@@ -146,8 +146,9 @@ app.get('/api/mix/:videoId', (req, res) => {
   let out = '', err = '';
   ytdlp.stdout.on('data', d => { out += d; });
   ytdlp.stderr.on('data', d => { err += d; });
-  ytdlp.on('error', () => res.status(500).json({ error: 'yt-dlp indisponible' }));
+  ytdlp.on('error', () => { if (!res.headersSent) res.status(500).json({ error: 'yt-dlp indisponible' }); });
   ytdlp.on('close', code => {
+    if (res.headersSent) return;
     if (code !== 0) return res.status(500).json({ error: 'Mix indisponible', details: err.slice(-200) });
     const tracks = out.split('\n').filter(l => l.trim()).map(line => {
       const [vid, title, uploader, duration] = line.split('|||');
@@ -310,8 +311,9 @@ app.get('/api/trending', (req, res) => {
   let out = '', err = '';
   ytdlp.stdout.on('data', d => { out += d; });
   ytdlp.stderr.on('data', d => { err += d; });
-  ytdlp.on('error', () => res.status(500).json({ error: 'yt-dlp indisponible' }));
+  ytdlp.on('error', () => { if (!res.headersSent) res.status(500).json({ error: 'yt-dlp indisponible' }); });
   ytdlp.on('close', code => {
+    if (res.headersSent) return;
     if (code !== 0) return res.status(500).json({ error: 'Trending échoué', details: err.slice(-200) });
     const tracks = out.split('\n').filter(l => l.trim()).map(line => {
       const [id, title, uploader, duration] = line.split('|||');
@@ -343,8 +345,9 @@ app.get('/api/search', (req, res) => {
   let out = '', err = '';
   ytdlp.stdout.on('data', d => { out += d; });
   ytdlp.stderr.on('data', d => { err += d; });
-  ytdlp.on('error', () => res.status(500).json({ error: 'yt-dlp indisponible' }));
+  ytdlp.on('error', () => { if (!res.headersSent) res.status(500).json({ error: 'yt-dlp indisponible' }); });
   ytdlp.on('close', code => {
+    if (res.headersSent) return;
     if (code !== 0) return res.status(500).json({ error: 'Recherche échouée', details: err.slice(-200) });
     const results = out.split('\n').filter(l => l.trim()).map(line => {
       const [id, title, uploader, duration] = line.split('|||');
@@ -375,8 +378,9 @@ app.get('/api/playlist-info', (req, res) => {
   let out = '', err = '';
   ytdlp.stdout.on('data', d => { out += d; });
   ytdlp.stderr.on('data', d => { err += d; });
-  ytdlp.on('error', () => res.status(500).json({ error: 'yt-dlp indisponible' }));
+  ytdlp.on('error', () => { if (!res.headersSent) res.status(500).json({ error: 'yt-dlp indisponible' }); });
   ytdlp.on('close', code => {
+    if (res.headersSent) return;
     if (code !== 0) return res.status(500).json({ error: 'Énumération échouée', details: err.slice(-300) });
     const items = out.split('\n').filter(l => l.trim()).map(line => {
       const [id, title, uploader, duration] = line.split('|||');
