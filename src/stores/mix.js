@@ -6,7 +6,6 @@ import { promptModal } from '@/lib/modal';
 import { useStreamsStore } from './streams';
 import { useLibraryStore } from './library';
 import { usePlaylistsStore } from './playlists';
-import { useJobsStore } from './jobs';
 
 export const useMixStore = defineStore('mix', {
   state: () => ({
@@ -49,7 +48,9 @@ export const useMixStore = defineStore('mix', {
           queueIds,
         };
         if (onSwitchView) onSwitchView();
-        mixTracks.forEach((m) => streams.prefetch(m.id));
+        // No bulk prefetch — would saturate the yt-dlp queue and slow down
+        // the first track the user actually clicks. We rely on player
+        // look-ahead (next track in queue) once playback starts.
       } catch (e) {
         showToast('Erreur mix : ' + e.message, 'error');
       }
@@ -62,9 +63,9 @@ export const useMixStore = defineStore('mix', {
       const defaultName = `Mix · ${this.current.sourceTitle.slice(0, 60)}`;
       const name = await promptModal({
         title: 'Sauvegarder le mix',
-        label: 'Toutes les pistes seront téléchargées en MP3 dans ta bibliothèque puis ajoutées à cette playlist.',
+        label: 'Le mix devient une playlist permanente. Les pistes restent en streaming (pas de téléchargement). Tu pourras toujours en télécharger une par une après.',
         defaultValue: defaultName,
-        confirmLabel: 'Lancer',
+        confirmLabel: 'Sauvegarder',
       });
       if (!name) return;
 
@@ -78,40 +79,76 @@ export const useMixStore = defineStore('mix', {
         showToast('Erreur : ' + e.message, 'error');
         return;
       }
-      const playlists = usePlaylistsStore();
-      await playlists.fetch();
 
       const lib = useLibraryStore();
-      const jobs = useJobsStore();
-      let queued = 0, alreadyHad = 0;
+      const playlists = usePlaylistsStore();
+
+      // Local mutation — sidebar shows the new playlist immediately.
+      playlists.items.push(playlist);
+
+      // Ensure each mix track exists in the library (metadata only, no MP3).
+      // Sequential — server's library.json read/write is non-atomic, so
+      // parallelizing risks losing entries to last-write-wins.
+      const trackIds = [];
+      let added = 0;
       for (const m of this.current.mixTracks) {
         const existing = lib.tracks.find((t) => t.ytId === m.id);
         if (existing) {
-          try {
-            await api(`/api/playlists/${playlist.id}/tracks`, {
-              method: 'POST',
-              body: JSON.stringify({ trackId: existing.id }),
-            });
-            alreadyHad++;
-          } catch {}
-        } else {
-          jobs.startDownload(m.url, '320', { title: m.title }, async (newTrack) => {
-            try {
-              await api(`/api/playlists/${playlist.id}/tracks`, {
-                method: 'POST',
-                body: JSON.stringify({ trackId: newTrack.id }),
-              });
-              await playlists.fetch();
-            } catch {}
-          });
-          queued++;
-          await new Promise((r) => setTimeout(r, 80));
+          trackIds.push(existing.id);
+          continue;
+        }
+        try {
+          // liked: false → track lives in library only as a playlist
+          // reference, never appears in the Favoris view.
+          const track = await lib.add(
+            {
+              id: m.id,
+              title: m.title,
+              uploader: m.uploader,
+              duration: m.duration,
+              thumbnail: m.thumbnail,
+              url: m.url,
+            },
+            { liked: false, silent: true },
+          );
+          if (track) {
+            trackIds.push(track.id);
+            if (!lib.tracks.some((t) => t.id === track.id) && track.id) {
+              // Defensive — lib.add already pushes when not duplicate.
+            } else {
+              added++;
+            }
+          }
+        } catch (e) {
+          console.error('[mix.save] library/add failed for', m.title, e);
         }
       }
-      await playlists.fetch();
-      showToast(`Mix « ${name} » créé · ${alreadyHad} déjà là, ${queued} en téléchargement`, 'success');
+
+      // Bulk-add all collected track ids to the playlist (single round-trip).
+      if (trackIds.length > 0) {
+        try {
+          await api(`/api/playlists/${playlist.id}/tracks/bulk`, {
+            method: 'POST',
+            body: JSON.stringify({ trackIds }),
+          });
+          const pl = playlists.findById(playlist.id);
+          if (pl) {
+            for (const id of trackIds) {
+              if (!pl.trackIds.includes(id)) pl.trackIds.push(id);
+            }
+          }
+        } catch (e) {
+          console.error('[mix.save] bulk-add failed:', e);
+          showToast('Erreur ajout : ' + e.message, 'error');
+        }
+      }
+
       this.current = null;
       if (onSwitchView) onSwitchView(playlist.id);
+      showToast(
+        `« ${name} » sauvegardée · ${trackIds.length} piste${trackIds.length > 1 ? 's' : ''} (${added} nouvelle${added > 1 ? 's' : ''} en favoris)`,
+        'success',
+      );
     },
   },
 });

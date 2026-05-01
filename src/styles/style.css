@@ -827,6 +827,97 @@ body.viz-running .eq.is-playing rect {
   transition: transform 0.04s ease-out;
 }
 
+/* Loading spinner that replaces the eq while a track is buffering. */
+.track-num-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-top-color: var(--accent-bright);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 0 auto;
+}
+
+/* Découverte (Spotify-style "made for you" grid) */
+.discover {
+  margin-top: 40px;
+}
+.discover-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.discover-header h2 {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  font-variation-settings: 'opsz' 32, 'wght' 700;
+}
+.discover-sub {
+  color: var(--text-soft);
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+.discover-sub em { font-style: italic; color: var(--text); }
+.discover-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 16px;
+}
+.discover-card {
+  background: var(--card);
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  font: inherit;
+  color: inherit;
+}
+.discover-card:hover {
+  background: var(--card-hover);
+  transform: translateY(-2px);
+}
+.discover-card img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 4px;
+  background: var(--card-hover);
+}
+.discover-card-meta { margin-top: 12px; min-width: 0; }
+.discover-card-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.discover-card-sub {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 4px;
+}
+.discover-loading {
+  color: var(--text-soft);
+  font-size: 0.9rem;
+  padding: 24px 0;
+  text-align: center;
+}
+.track:hover .track-num-spinner { display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
 #player-like { color: var(--text-soft); }
 #player-like:hover { color: var(--accent-bright); }
 #player-like.is-liked { color: var(--accent-bright); }

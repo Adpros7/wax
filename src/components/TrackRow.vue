@@ -39,7 +39,7 @@ const rowRef = ref(null);
 
 const isCurrent = computed(() => player.queue[player.index] === props.track.id);
 const isPlaying = computed(() => isCurrent.value && player.playing);
-const fav = computed(() => lib.isInLibrary(props.track));
+const fav = computed(() => lib.isFavorite(props.track));
 const dl = computed(() => lib.libraryDownloads.get(props.track.id));
 
 function playThis() {
@@ -102,7 +102,8 @@ onMounted(() => {
     @dblclick="playThis"
   >
     <div class="track-num">
-      <div v-if="isCurrent" class="track-num-eq" v-html="eqHtml(player.playing)"></div>
+      <div v-if="isCurrent && player.loading" class="track-num-spinner" aria-label="Chargement…"></div>
+      <div v-else-if="isCurrent" class="track-num-eq" v-html="eqHtml(player.playing)"></div>
       <span v-else class="track-num-default">{{ index != null ? index + 1 : '' }}</span>
       <button
         class="track-num-action"

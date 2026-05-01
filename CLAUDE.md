@@ -65,15 +65,16 @@ Runtime deps (PATH): `yt-dlp`, `ffmpeg`. Falls back via `WAX_YT_DLP` / `WAX_FFMP
 - `settings.js` — settings modal opener (custom because it has interactive state).
 
 **`src/stores/`** (Pinia):
-- `library.js` — `tracks`, `loading`, `search`, `libraryDownloads` (Map). Actions: `fetch`, `add`, `remove`, `removeByYtId`, `deleteTrack`, `toggleFav`, `reorder`, `downloadTrack`, `_listenLibraryProgress` (SSE), `smartTracks`. **All mutations are local-first** (no full re-fetch round-trip after add/remove).
+- `library.js` — `tracks`, `loading`, `search`, `libraryDownloads` (Map). Actions: `fetch`, `add(r, opts)` (opts.liked default true; opts.silent skips the toast), `remove`, `removeByYtId`, `deleteTrack`, `toggleFav` (toggles `liked` flag, doesn't delete), `_setLiked` (PATCH /api/library/:id), `reorder`, `downloadTrack`, `_listenLibraryProgress` (SSE), `smartTracks`. Getters: `favorites` (tracks where `liked !== false`), `filtered` (favorites + search filter), `isInLibrary(track)`, `isFavorite(track)`. **All mutations are local-first** (no full re-fetch round-trip after add/remove).
 - `playlists.js` — `items`. Actions: `fetch`, `dropTrackLocally` (called by library.remove), `create`, `remove`, `rename`, `addTrack`, `addTracksBulk`, `removeTrack`, `reorder`.
-- `player.js` — `queue`, `index`, `playing`, `shuffle`, `repeat`, `volume`, `currentTime`, `duration`, `audioEl`, `audio2El`. Actions: `bindAudio`, `playFromList`, `togglePlay`, `next`, `prev`, `stop`, `seekToPct`, `setVolume`, MediaSession setup, persistence (save/restore to localStorage), crossfade orchestration.
+- `player.js` — `queue`, `index`, `playing`, `loading` (true between `loadAndPlay()` and the first audio `playing` event), `shuffle`, `repeat`, `volume`, `currentTime`, `duration`, `audioEl`, `audio2El`. Actions: `bindAudio` (wires `play`/`pause`/`playing`/`waiting`/`error`/`timeupdate`/`ended` events), `playFromList`, `loadAndPlay` (also prefetches the next streamable track in queue — look-ahead), `togglePlay`, `next`, `prev`, `stop`, `seekToPct`, `setVolume`, MediaSession setup, persistence (save/restore to localStorage), crossfade orchestration.
 - `prefs.js` — `volume`, `crossfadeEnabled`, `accentMode`, `accentColor`. Persisted via `wax:prefs` localStorage key.
 - `accent.js` — palette derivation. Functions: `extractDominantColor`, `rgbToHsl`, `hexToHsl`, `applyHsl` (sets CSS vars on `documentElement`). Actions: `applyUserAccent`, `adaptToTrack` (extracts from thumbnail).
 - `view.js` — `name` ('download' | 'library' | 'playlist' | 'mix' | 'smart'), `selectedPlaylistId`, `smartView`. Actions: `switchTo`.
-- `mix.js` — `tempMix` (the 50-track YouTube Mix in flight). Actions: `streamFrom`, `save`, `close`, `playAll`.
+- `mix.js` — `tempMix` (the 50-track YouTube Mix in flight). Actions: `streamFrom` (no bulk prefetch; relies on player look-ahead), `save` (creates playlist + adds metadata-only library entries with `liked: false` + bulk-attaches them — never downloads), `close`, `playAll`.
 - `search.js` — `query`, `results`, `playlistSource`, `playlistSelection`, `preview`. Drives `ViewSearch.vue`.
 - `streams.js` — `entries` Map<id, virtualTrack> for ephemeral streamed tracks (those not in library). `prefetched` Set + `prefetch(videoId)` action.
+- `discover.js` — `tracks`, `loading`, `seedTrack`. Action `refresh()` picks a random favorite (or library track) → calls `/api/mix/:ytId`. Falls back to `/api/trending` (YouTube's `RDCLAK5uy_ly6s4irLuZAcjEDwJmqcA_UtSipMyGgbQ` "Today's Top Hits" playlist) when the library is empty. Filters out already-favorited entries.
 - `jobs.js` — `pending` Map<id, job> for download jobs in flight. `startDownload(url, hint, onReady)` + SSE listener.
 
 **`src/composables/`**:
@@ -137,6 +138,14 @@ Drag region for window movement: `-webkit-app-region: drag` on `.brand` and `.si
 4. `--t-accent` transition (0.8s) makes the change feel smooth.
 5. Skipped entirely if `prefs.accentMode === 'custom'` (user picked a fixed color in Settings).
 
+### Découverte
+1. App mount: after `library.fetch()`, calls `discover.refresh()`.
+2. If favoris/library has at least one ytId, picks a random one → `GET /api/mix/:ytId` → up to 30 tracks (filtered to exclude favorites).
+3. Else (cold start), `GET /api/trending` → YouTube's auto-curated "Today's Top Hits" playlist.
+4. Each result is registered as a stream track in the streams store and exposed via the `discover.tracks` array.
+5. `<DiscoverGrid>` renders them as a grid of cards (cover + title + uploader). Click → `player.playFromList(track.id, queueIds)`. The grid is hidden whenever the search input is non-empty.
+6. The refresh button (↻) re-rolls the seed.
+
 ## Conventions / style
 
 - **Vue**: Composition API + `<script setup>`. No Options API.
@@ -177,14 +186,20 @@ Drag region for window movement: `-webkit-app-region: drag` on `.brand` and `.si
 
 ## Fragile / gotchas
 
-- **`@distube/ytdl-core` is currently REMOVED** from the stream path. We tried it (10× faster than yt-dlp -g) but it broke when YouTube changed their format selection. yt-dlp is the only path now. If you re-add it, wrap in try/catch with quick timeout fallback.
-- **yt-dlp concurrency**: limited to 3 simultaneous processes. Search prefetches 10 results — they queue. If the user sees "stuck" prefetches it's just waiting.
+- **`@distube/ytdl-core` is currently REMOVED** from the stream path. We tried it (10× faster than yt-dlp -g) but it broke when YouTube changed their format selection ("Failed to find any playable formats" / "no playable format"). yt-dlp is the only path now. If you re-add it, wrap in try/catch with quick timeout fallback.
+- **yt-dlp uses `--extractor-args "youtube:player_client=android,web"`** — the `android` client is ~2.5× faster than the default `web` because it skips the SABR/sig dance. Trade-off: returns the combined mp4 (itag 18, video+audio @360p) instead of audio-only m4a; `<audio>` plays it transparently, costs ~1.5× bandwidth. yt-dlp tries `web` as fallback when android refuses.
+- **Mix endpoint URL**: must be `https://www.youtube.com/watch?v=<id>&list=RD<id>` (the watch-page form). The `playlist?list=RD<id>` form returns "This playlist type is unviewable" since mid-2026.
+- **Trending playlist**: hardcoded to `RDCLAK5uy_ly6s4irLuZAcjEDwJmqcA_UtSipMyGgbQ` (YouTube's "Today's Top Hits" radio). Stable URL but contents auto-rotate.
+- **yt-dlp concurrency**: limited to 3 simultaneous processes via `runYtDlp` semaphore. Prefixed prefetches (10 results) queue silently — no UI feedback for the queue position. The Mix `streamFrom` no longer bulk-prefetches all 50 tracks; only the player's `loadAndPlay` look-ahead prefetches the next track in queue.
 - **`createMediaElementSource` is one-shot**: once called on the audio element, the audio MUST flow through the AudioContext destination. Don't call it twice.
 - **Crossfade with two audio elements**: `audio` plays the new track, `audio2` plays the outgoing one. Volumes ramp via `requestAnimationFrame` over 3 s. Make sure not to break this if you touch `Player.vue` or `player.js`.
 - **MediaSession API is browser-version-sensitive**: gracefully degrades if not supported, but always test on Electron's bundled Chromium.
 - **Drag-reorder uses HTML5 DnD**: reordering inside long lists can have flicker if the data is mutated mid-drag. Current implementation calls the API non-blockingly and reverts on error.
 - **Modal cancel callback**: when a modal is closed via overlay/Escape, `modalState.onCancel` fires. When a modal is confirmed, `confirmFromModal` clears `onCancel` first to avoid double-resolve. Be careful if you add new modal patterns.
 - **Sidebar drag region**: clickable elements inside the drag area need `-webkit-app-region: no-drag` or they swallow drag and become unclickable.
+- **`liked` flag semantic**: undefined or `true` → favori; only `false` excludes from Favoris. Backward compat with rows added before the field existed.
+- **Library mutation on download "ready"**: previously did a full `lib.fetch()` after each download. Now mutates `track.file = '/audio/<id>.mp3'` locally on the existing entry. Don't add another `lib.fetch()` here unless you want to nuke the local-first optimization.
+- **Search → TrackRow**: search results are converted to virtual `stream-<ytId>` tracks registered in the streams store, then rendered through TrackRow. Same component path as mix/playlist tracks. Spinner / heart / mix / look-ahead all reused.
 
 ## Migration history (context for understanding the codebase)
 
@@ -202,6 +217,8 @@ The project went through **two major refactors**:
 - Smart playlists (`recent`, `top`) are wired but no sidebar entry surfaces them — they're reachable only programmatically.
 - No keyboard shortcut help overlay (Space play/pause + Esc close-modal exist but aren't documented in-app).
 - No "remove from offline" UI (the backend endpoint `DELETE /api/library/:id/download` exists but isn't wired to a button).
+- "Non-favorite library tracks" (added by mix.save) accumulate silently — no garbage-collection UI to purge orphans (tracks with `liked:false` and not referenced by any playlist).
+- Discover never auto-refreshes when favorites change. User must click the ↻ button on the section header.
 
 ## Communication style with Dylan
 

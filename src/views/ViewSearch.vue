@@ -6,9 +6,10 @@ import { useStreamsStore } from '@/stores/streams';
 import { usePlayerStore } from '@/stores/player';
 import { useJobsStore } from '@/stores/jobs';
 import { fmtDuration, isYoutubeUrl } from '@/lib/format';
-import { ICON_HEART, ICON_HEART_OUTLINE } from '@/lib/icons';
 import { showToast } from '@/lib/toast';
 import JobItem from '@/components/JobItem.vue';
+import TrackRow from '@/components/TrackRow.vue';
+import DiscoverGrid from '@/components/DiscoverGrid.vue';
 
 const search = useSearchStore();
 const library = useLibraryStore();
@@ -35,16 +36,6 @@ const onUrlChange = makeSearchHandler(search);
 function handleInput(e) {
   search.inputValue = e.target.value;
   onUrlChange();
-}
-
-async function pasteFromClipboard() {
-  try {
-    const text = await navigator.clipboard.readText();
-    search.inputValue = text;
-    onUrlChange();
-  } catch {
-    showToast('Presse-papier inaccessible', 'error');
-  }
 }
 
 function clearInput() {
@@ -80,20 +71,32 @@ async function submit() {
   }
 }
 
-// search-result helpers
-function favForResult(r) {
-  return library.tracks.some((t) => t.ytId === r.id || t.url === r.url);
-}
-function isStreamingResult(r) {
-  return player.queue[player.index] === `stream-${r.id}`;
-}
-function streamPlay(r, btnEvent) {
-  streams.streamSearchResult(r, btnEvent.currentTarget, player);
-}
-function toggleFavResult(r) {
-  if (favForResult(r)) library.removeByYtId(r.id);
-  else library.add(r);
-}
+// Convert each YouTube search hit into a "stream track" registered in the
+// streams store, so TrackRow can render them like any other track (spinner,
+// heart toggle, mix, look-ahead — all reused).
+const searchTracks = computed(() => {
+  if (!search.results) return [];
+  return search.results.map((r) => {
+    const streamId = `stream-${r.id}`;
+    let entry = streams.get(streamId);
+    if (!entry) {
+      entry = {
+        id: streamId,
+        title: r.title,
+        uploader: r.uploader || '',
+        duration: r.duration,
+        thumbnail: r.thumbnail,
+        file: `/api/stream/${r.id}`,
+        ytId: r.id,
+        isStream: true,
+      };
+      streams.set(streamId, entry);
+    }
+    return entry;
+  });
+});
+const searchQueueIds = computed(() => searchTracks.value.map((t) => t.id));
+
 function selectAllPlaylist() { search.selectAllPlaylist(); }
 function selectNonePlaylist() { search.selectNonePlaylist(); }
 
@@ -106,7 +109,7 @@ function togglePlaylistTrack(id) { search.togglePlaylistTrack(id); }
       <div class="hero-content">
         <span class="eyebrow">Recherche</span>
         <h1>Que veux-tu écouter&nbsp;?</h1>
-        <p class="hero-meta">Tape un titre, un artiste — ou colle une URL YouTube</p>
+        <p class="hero-meta">Tape un titre, un artiste</p>
       </div>
     </header>
     <div class="page-body">
@@ -129,17 +132,6 @@ function togglePlaylistTrack(id) { search.togglePlaylistTrack(id); }
             @input="handleInput"
             required
           />
-          <button type="button" id="paste-btn" class="paste-btn" title="Coller" @click="pasteFromClipboard">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <rect x="9" y="3" width="6" height="3" rx="1" stroke="currentColor" stroke-width="2" />
-              <path
-                d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-              />
-            </svg>
-          </button>
         </div>
 
         <div
@@ -213,56 +205,26 @@ function togglePlaylistTrack(id) { search.togglePlaylistTrack(id); }
       </p>
 
       <ul
-        id="search-results"
-        class="search-results"
-        :hidden="!search.results || search.results.length === 0"
+        class="track-list"
+        :hidden="searchTracks.length === 0"
       >
-        <li
-          v-for="r in search.results || []"
-          :key="r.id"
-          class="search-result"
-        >
-          <img class="search-result-thumb" :src="r.thumbnail" alt="" loading="lazy" />
-          <div class="search-result-meta">
-            <div class="search-result-title">{{ r.title }}</div>
-            <div class="search-result-sub">{{ r.uploader || 'YouTube' }}</div>
-          </div>
-          <span class="search-result-duration">{{ fmtDuration(r.duration) }}</span>
-          <button
-            type="button"
-            class="stream-btn"
-            :class="{ 'is-playing': isStreamingResult(r) && player.playing }"
-            title="Lire en streaming"
-            @mouseenter="streams.prefetch(r.id)"
-            @focus="streams.prefetch(r.id)"
-            @click.stop.prevent="streamPlay(r, $event)"
-          >
-            <svg
-              v-if="isStreamingResult(r) && player.playing"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M6 4h4v16H6zM14 4h4v16h-4z" />
-            </svg>
-            <svg v-else viewBox="0 0 24 24" fill="currentColor">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            class="add-btn fav-btn"
-            :class="{ 'is-favorited': favForResult(r) }"
-            :title="favForResult(r) ? 'Retirer des favoris' : 'Ajouter aux favoris'"
-            :aria-label="favForResult(r) ? 'Retirer des favoris' : 'Ajouter aux favoris'"
-            @click.stop.prevent="toggleFavResult(r)"
-            v-html="favForResult(r) ? ICON_HEART : ICON_HEART_OUTLINE"
-          ></button>
-        </li>
+        <TrackRow
+          v-for="(t, i) in searchTracks"
+          :key="t.id"
+          :track="t"
+          :index="i"
+          :queue="searchQueueIds"
+        />
       </ul>
 
       <div id="jobs-list" class="jobs-list">
         <JobItem v-for="(job, i) in jobs.items" :key="job.id + i" :job="job" />
       </div>
+
+      <!-- Discovery: shown only when the input is empty (no preview, no playlist source, no results). -->
+      <DiscoverGrid
+        v-if="!search.inputValue && !search.preview && !search.playlistSource && (!search.results || search.results.length === 0)"
+      />
     </div>
   </section>
 </template>

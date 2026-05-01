@@ -7,11 +7,12 @@ import TrackRow from '@/components/TrackRow.vue';
 const lib = useLibraryStore();
 const player = usePlayerStore();
 
-const queueIds = computed(() => lib.tracks.map((t) => t.id));
+const favorites = computed(() => lib.favorites);
+const queueIds = computed(() => favorites.value.map((t) => t.id));
 const filtered = computed(() => lib.filtered);
 
 function playAll() {
-  if (lib.tracks.length === 0) return;
+  if (favorites.value.length === 0) return;
   const ids = queueIds.value;
   player.playFromList(ids[0], ids);
 }
@@ -37,7 +38,7 @@ function skSubW() { return 30 + Math.random() * 25; }
       <div class="hero-content">
         <span class="eyebrow">Tes favoris</span>
         <h1>Favoris</h1>
-        <p class="hero-meta"><span>{{ lib.tracks.length }}</span> titres</p>
+        <p class="hero-meta"><span>{{ favorites.length }}</span> titres</p>
       </div>
     </header>
     <div class="page-body">
@@ -76,8 +77,8 @@ function skSubW() { return 30 + Math.random() * 25; }
           :on-reorder="reorder"
         />
       </ul>
-      <p class="empty-state" :hidden="lib.tracks.length > 0">
-        Ta bibliothèque est vide. Télécharge ton premier morceau dans l'onglet « Télécharger ».
+      <p class="empty-state" :hidden="favorites.length > 0">
+        Aucun favori. Clique sur le ❤ d'un morceau pour l'ajouter ici.
       </p>
     </div>
   </section>

@@ -18,7 +18,7 @@ const items = computed(() => {
     kind: 'library',
     active: view.name === 'library',
     name: 'Favoris',
-    sub: `${library.tracks.length} titre${library.tracks.length > 1 ? 's' : ''}`,
+    sub: `${library.favorites.length} titre${library.favorites.length > 1 ? 's' : ''}`,
     iconHtml: ICON_HEART,
     iconClass: 'liked-icon',
   });

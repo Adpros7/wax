@@ -19,10 +19,14 @@ export const useLibraryStore = defineStore('library', {
   getters: {
     inLibraryByYtId: (state) => (ytId) => state.tracks.some((t) => t.ytId === ytId),
     findById: (state) => (id) => state.tracks.find((t) => t.id === id) || null,
+    // Tracks the user has explicitly hearted. Treats undefined `liked` as
+    // true for backward compat with rows added before the field existed.
+    favorites: (state) => state.tracks.filter((t) => t.liked !== false),
     filtered(state) {
+      const base = state.tracks.filter((t) => t.liked !== false);
       const q = state.search.toLowerCase();
-      if (!q) return state.tracks;
-      return state.tracks.filter(
+      if (!q) return base;
+      return base.filter(
         (t) =>
           t.title.toLowerCase().includes(q) ||
           (t.uploader || '').toLowerCase().includes(q),
@@ -35,6 +39,14 @@ export const useLibraryStore = defineStore('library', {
       if (track.isStream) return this.tracks.some((t) => t.ytId === track.ytId);
       return this.tracks.some((t) => t.id === track.id);
     },
+    // For the heart UI: is this track in the user's Favoris (liked!==false)?
+    isFavorite(track) {
+      if (!track) return false;
+      const lib = track.isStream
+        ? this.tracks.find((t) => t.ytId === track.ytId)
+        : this.findById(track.id);
+      return !!lib && lib.liked !== false;
+    },
     async fetch() {
       try {
         const { tracks } = await api('/api/library');
@@ -43,7 +55,9 @@ export const useLibraryStore = defineStore('library', {
         this.loading = false;
       }
     },
-    async add(r) {
+    async add(r, opts = {}) {
+      const liked = opts.liked !== false; // default true: explicit favorites
+      const silent = opts.silent === true;
       try {
         const data = await api('/api/library/add', {
           method: 'POST',
@@ -54,18 +68,18 @@ export const useLibraryStore = defineStore('library', {
             duration: r.duration,
             thumbnail: r.thumbnail,
             url: r.url,
+            liked,
           }),
         });
-        // Optimistic local mutation — no fetch round-trip.
         if (!data.duplicate && data.track) {
           this.tracks.unshift(data.track);
-          showToast('Ajouté aux favoris', 'success');
-        } else {
-          showToast('Déjà dans les favoris', 'success');
+          if (!silent) showToast(liked ? 'Ajouté aux favoris' : 'Ajouté', 'success');
+        } else if (!silent) {
+          showToast('Déjà dans la bibliothèque', 'success');
         }
         return data.track;
       } catch (e) {
-        showToast('Erreur : ' + e.message, 'error');
+        if (!silent) showToast('Erreur : ' + e.message, 'error');
       }
     },
     async removeByYtId(ytId) {
@@ -138,17 +152,37 @@ export const useLibraryStore = defineStore('library', {
     async toggleFav(track) {
       if (track.isStream) {
         const existing = this.tracks.find((t) => t.ytId === track.ytId);
-        if (existing) await this.remove(existing.id);
-        else await this.add({
-          id: track.ytId,
-          title: track.title,
-          uploader: track.uploader,
-          duration: track.duration,
-          thumbnail: track.thumbnail,
-          url: `https://www.youtube.com/watch?v=${track.ytId}`,
-        });
+        if (existing) {
+          // Toggle the liked flag on the existing library entry.
+          await this._setLiked(existing.id, !(existing.liked !== false));
+        } else {
+          // Stream not in library — add as favorite.
+          await this.add({
+            id: track.ytId,
+            title: track.title,
+            uploader: track.uploader,
+            duration: track.duration,
+            thumbnail: track.thumbnail,
+            url: `https://www.youtube.com/watch?v=${track.ytId}`,
+          });
+        }
       } else {
-        await this.remove(track.id);
+        // Track is already in library — just flip its liked flag.
+        await this._setLiked(track.id, !(track.liked !== false));
+      }
+    },
+    async _setLiked(trackId, liked) {
+      const t = this.findById(trackId);
+      if (!t) return;
+      t.liked = liked;
+      try {
+        await api(`/api/library/${trackId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ liked }),
+        });
+      } catch (e) {
+        t.liked = !liked;
+        showToast('Erreur favoris', 'error');
       }
     },
     async reorder(draggedId, targetId, above) {

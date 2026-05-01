@@ -38,11 +38,17 @@ function runYtDlp(fn) {
 
 function getStreamUrlViaYtDlp(videoId) {
   return runYtDlp(() => new Promise((resolve, reject) => {
+    // android player client is ~2x faster than the default web client because
+    // it skips ad/SABR signature dance. Trade-off: returns the combined mp4
+    // (itag 18, video+audio @360p) — browsers happily play it as audio source,
+    // bandwidth ~150KB/s instead of ~80KB/s for m4a-only. We try web as
+    // fallback so audio-only formats remain available when android is blocked.
     const ytdlp = spawn(YT_DLP_BIN, [
-      '-f', 'bestaudio[ext=m4a]/bestaudio',
+      '-f', 'bestaudio[ext=m4a]/bestaudio/best',
       '-g',
       '--no-playlist',
       '--no-warnings',
+      '--extractor-args', 'youtube:player_client=android,web',
       `https://www.youtube.com/watch?v=${videoId}`,
     ]);
     let out = '', err = '';
@@ -126,7 +132,9 @@ app.get('/api/mix/:videoId', (req, res) => {
   const id = req.params.videoId;
   if (!/^[A-Za-z0-9_-]{6,15}$/.test(id)) return res.status(400).json({ error: 'ID invalide' });
 
-  const mixUrl = `https://www.youtube.com/playlist?list=RD${id}`;
+  // YouTube refuses to serve RD<id> via /playlist?list=... ("unviewable").
+  // The /watch?v=...&list=RD... form is still accepted by yt-dlp.
+  const mixUrl = `https://www.youtube.com/watch?v=${id}&list=RD${id}`;
   const ytdlp = spawn(YT_DLP_BIN, [
     '--flat-playlist',
     '--skip-download',
@@ -284,6 +292,39 @@ app.get('/api/preview/:videoId', (req, res) => {
       return res.status(500).json({ error: 'Aperçu indisponible', details: stderr.slice(-200) });
     }
     res.json({ url: publicUrl });
+  });
+});
+
+app.get('/api/trending', (req, res) => {
+  // YouTube's official "Today's Top Hits"-style auto-curated playlist.
+  // RDCLAK5... ids are stable Mix radios maintained by YouTube.
+  const TRENDING_PLAYLIST = 'https://www.youtube.com/playlist?list=RDCLAK5uy_ly6s4irLuZAcjEDwJmqcA_UtSipMyGgbQ';
+  const ytdlp = spawn(YT_DLP_BIN, [
+    TRENDING_PLAYLIST,
+    '--flat-playlist',
+    '--skip-download',
+    '--print', '%(id)s|||%(title)s|||%(uploader)s|||%(duration)s',
+    '--no-warnings',
+    '--playlist-end', '30',
+  ]);
+  let out = '', err = '';
+  ytdlp.stdout.on('data', d => { out += d; });
+  ytdlp.stderr.on('data', d => { err += d; });
+  ytdlp.on('error', () => res.status(500).json({ error: 'yt-dlp indisponible' }));
+  ytdlp.on('close', code => {
+    if (code !== 0) return res.status(500).json({ error: 'Trending échoué', details: err.slice(-200) });
+    const tracks = out.split('\n').filter(l => l.trim()).map(line => {
+      const [id, title, uploader, duration] = line.split('|||');
+      return {
+        id,
+        title: title || 'Sans titre',
+        uploader: uploader === 'NA' ? '' : (uploader || ''),
+        duration: parseFloat(duration) || 0,
+        url: `https://www.youtube.com/watch?v=${id}`,
+        thumbnail: `https://i.ytimg.com/vi/${id}/mqdefault.jpg`,
+      };
+    });
+    res.json({ tracks });
   });
 });
 
@@ -534,7 +575,7 @@ app.get('/api/library', (req, res) => {
 });
 
 app.post('/api/library/add', (req, res) => {
-  const { ytId, title, uploader, duration, thumbnail, url } = req.body || {};
+  const { ytId, title, uploader, duration, thumbnail, url, liked } = req.body || {};
   if (!ytId || !title) return res.status(400).json({ error: 'ytId + title requis' });
   const lib = getLibrary();
   const existing = lib.find(t => t.ytId === ytId);
@@ -549,6 +590,7 @@ app.post('/api/library/add', (req, res) => {
     ytId,
     url: url || `https://www.youtube.com/watch?v=${ytId}`,
     file: null,
+    liked: typeof liked === 'boolean' ? liked : true,
     addedAt: Date.now(),
   };
   lib.unshift(track);

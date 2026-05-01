@@ -17,6 +17,7 @@ import { useLibraryStore } from './stores/library';
 import { usePlaylistsStore } from './stores/playlists';
 import { useViewStore } from './stores/view';
 import { usePlayerStore } from './stores/player';
+import { useDiscoverStore } from './stores/discover';
 import { closeModal, modalState } from './lib/modal';
 
 const prefs = usePrefsStore();
@@ -25,6 +26,7 @@ const library = useLibraryStore();
 const playlists = usePlaylistsStore();
 const view = useViewStore();
 const player = usePlayerStore();
+const discover = useDiscoverStore();
 
 const currentView = computed(() => view.name);
 
@@ -40,6 +42,8 @@ onMounted(async () => {
   await library.fetch();
   player.restorePlayerState();
   playlists.fetch();
+  // Populate Découverte once the library is loaded — no-op if empty.
+  discover.refresh();
 
   // Global keyboard
   document.addEventListener('keydown', (e) => {

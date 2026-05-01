@@ -31,6 +31,7 @@ export const usePlayerStore = defineStore('player', {
     queue: [],
     index: -1,
     playing: false,
+    loading: false,  // true between loadAndPlay() and the first 'playing' event
     shuffle: false,
     repeat: 'off', // 'off' | 'all' | 'one'
     muted: false,
@@ -73,6 +74,9 @@ export const usePlayerStore = defineStore('player', {
       // Wire event listeners
       el.addEventListener('play', () => this._onAudioPlay());
       el.addEventListener('pause', () => this._onAudioPause());
+      el.addEventListener('playing', () => { this.loading = false; });
+      el.addEventListener('waiting', () => { this.loading = true; });
+      el.addEventListener('error', () => { this.loading = false; });
       el.addEventListener('timeupdate', () => this._onAudioTimeUpdate());
       el.addEventListener('ended', () => this._onAudioEnded());
     },
@@ -92,6 +96,7 @@ export const usePlayerStore = defineStore('player', {
         this.crossfading = false;
       }
       this.visible = true;
+      this.loading = true;
       this.audioEl.src = trackPlayUrl(track);
       const prefs = usePrefsStore();
       // Stream prefetch
@@ -99,7 +104,17 @@ export const usePlayerStore = defineStore('player', {
         useStreamsStore().prefetch(track.ytId);
       }
       this.audioEl.volume = this.muted ? 0 : prefs.volume;
-      this.audioEl.play().catch(() => {});
+      this.audioEl.play().catch(() => { this.loading = false; });
+      // Look-ahead: warm the next streamable track's URL so the queue
+      // transition feels instant. Only prefetches the immediate next.
+      const streamsStore = useStreamsStore();
+      const nextIdx = (this.index + 1) % this.queue.length;
+      if (nextIdx !== this.index) {
+        const nextTrack = findTrack(this.queue[nextIdx]);
+        if (nextTrack && !nextTrack.file && nextTrack.ytId) {
+          streamsStore.prefetch(nextTrack.ytId);
+        }
+      }
       // Adapt accent + media session
       const accent = useAccentStore();
       accent.adaptToTrack(track);
@@ -136,6 +151,7 @@ export const usePlayerStore = defineStore('player', {
         this.audioEl.src = '';
       }
       this.playing = false;
+      this.loading = false;
       this.visible = false;
       const accent = useAccentStore();
       accent.resetAccent();

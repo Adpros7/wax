@@ -1,0 +1,60 @@
+<script setup>
+import { computed } from 'vue';
+import { useDiscoverStore } from '@/stores/discover';
+import { usePlayerStore } from '@/stores/player';
+
+const discover = useDiscoverStore();
+const player = usePlayerStore();
+
+const queueIds = computed(() => discover.tracks.map((t) => t.id));
+
+function play(track) {
+  player.playFromList(track.id, queueIds.value);
+}
+</script>
+
+<template>
+  <section class="discover" v-if="discover.tracks.length > 0 || discover.loading">
+    <div class="discover-header">
+      <div>
+        <h2>{{ discover.seedTrack ? 'Découverte' : 'Top du moment' }}</h2>
+        <p v-if="discover.seedTrack" class="discover-sub">
+          Inspiré par
+          <em>{{ discover.seedTrack.title }}</em>
+        </p>
+        <p v-else class="discover-sub">Les hits du moment sur YouTube</p>
+      </div>
+      <button
+        class="icon-btn"
+        :disabled="discover.loading"
+        title="Régénérer"
+        @click="discover.refresh()"
+      >
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M3 12a9 9 0 0 1 16-5.7M21 4v5h-5M21 12a9 9 0 0 1-16 5.7M3 20v-5h5"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+    </div>
+    <div class="discover-grid" v-if="!discover.loading">
+      <button
+        v-for="t in discover.tracks"
+        :key="t.id"
+        class="discover-card"
+        @click="play(t)"
+      >
+        <img :src="t.thumbnail" alt="" loading="lazy" />
+        <div class="discover-card-meta">
+          <div class="discover-card-title">{{ t.title }}</div>
+          <div class="discover-card-sub">{{ t.uploader }}</div>
+        </div>
+      </button>
+    </div>
+    <div v-else class="discover-loading">Génération…</div>
+  </section>
+</template>
