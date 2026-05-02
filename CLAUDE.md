@@ -4,11 +4,10 @@ This file is for **you, future Claude**. Read it first when starting a session o
 
 ## TL;DR — what is this?
 
-**Wax** is a desktop YouTube → MP3 player. It's an Electron app:
-- `server.js` (Express) shells out to `yt-dlp` for searching, downloading, streaming
-- `src/` is a Vue 3 + Vite frontend (Pinia stores, composables, SFCs)
-- `electron/main.cjs` wraps it: forks `server.js` as a child process, opens a BrowserWindow on the Vite dev URL or built `dist/`
-- Packaged via `electron-builder` to `.dmg` / `.exe` / `.AppImage`
+**Wax** is a YouTube → MP3 player with two clients on the same backend:
+- `server.js` (Express) shells out to `yt-dlp` for searching, downloading, streaming. Same endpoints serve both clients.
+- `src/` — desktop renderer (Vue 3 + Vite + Pinia). Wrapped by `electron/main.cjs` (forks `server.js`, opens a BrowserWindow). Packaged via `electron-builder` to `.dmg` / `.exe` / `.AppImage`.
+- `flutter/` — iOS companion (Flutter 3 + Riverpod + just_audio + audio_service). Hits the same Express endpoints over the LAN. `API_BASE` is baked at build time via `--dart-define`.
 
 The user is **Dylan**, a senior dev. Communicate concisely, in **French** (he writes in French). Confirm before destructive ops.
 
@@ -34,12 +33,23 @@ Runtime deps (PATH): `yt-dlp`, `ffmpeg`. Falls back via `WAX_YT_DLP` / `WAX_FFMP
   - JSON storage: `library/library.json` + `library/playlists.json`. No DB.
   - Audio files: `library/audio/<id>.mp3`. Preview cache: `library/previews/<id>.mp3`.
   - Stream URL cache: in-memory Map, 5h TTL.
-  - **yt-dlp concurrency limited to 3** via a semaphore (`runYtDlp`) — prevents CPU saturation when prefetching 10+ search results in parallel.
-  - SSE for download progress: `GET /api/jobs/:id/progress` streams `data: {type, progress, phase}\n\n` lines.
+  - **yt-dlp concurrency limited to 3** via a semaphore (`runYtDlp`) — prevents CPU saturation when prefetching 10+ search results in parallel. Every SSE progress event is enriched with `ytdlpActive` + `ytdlpQueued` so the sidebar badge can surface global queue depth without polling.
+  - SSE for download progress: `GET /api/jobs/:id/progress` streams `data: {type, progress, phase, ytdlpActive, ytdlpQueued}\n\n` lines.
+  - **Thumbnail upgrade on read**: `getLibrary()` rewrites stored `mqdefault/hqdefault` URLs to `maxresdefault.jpg` on the way out. Storage isn't migrated; clients handle the 404 / placeholder fallback. New tracks (search, mix, trending, library/add) all default to `maxresdefault` directly.
 
 ### Electron
-- **`electron/main.cjs`** — Forks `server.js` with env vars (`PORT=3000`, `WAX_LIBRARY_DIR=<userData>/library`, etc.). Creates `BrowserWindow` with `titleBarStyle: 'hiddenInset'` on macOS. Loads Vite URL in dev, `dist/index.html` in prod.
+- **`electron/main.cjs`** — Forks `server.js` with env vars (`PORT=3000`, `WAX_LIBRARY_DIR=<userData>/library`, etc.). Creates `BrowserWindow` with `titleBarStyle: 'hiddenInset'` on macOS. Loads Vite URL in dev, `dist/index.html` in prod. Apps launched from Finder/LaunchServices inherit a minimal `PATH`, so the fork augments it with `/opt/homebrew/bin`, `/usr/local/bin`, etc., to make user-installed `yt-dlp` / `ffmpeg` discoverable.
 - **`electron/preload.cjs`** — Exposes `window.wax = { platform, versions }` to the renderer via `contextBridge`. Currently informational only.
+- The root-level `main.cjs` is a leftover from an earlier layout — not wired in (`package.json` `main` points to `electron/main.cjs`). Safe to ignore or delete.
+
+### Mobile (`flutter/`)
+Flutter 3 + Riverpod iOS app. Same backend, no mobile-specific endpoints.
+- **`lib/api/api_client.dart`** — Single Dio client. Base URL injected at build time via `--dart-define=API_BASE=http://...:3000`. Helpers wrap every endpoint the desktop app uses (`/api/library`, `/api/playlists`, `/api/search`, `/api/trending`, `/api/stream/:id`, `/api/library/add`, `PATCH /api/library/:id`, etc.). `streamUrl(ytId)` and `fileUrl(filePath)` build full URLs the audio player can hit directly.
+- **`lib/api/models.dart`** — `Track`, `Playlist` with `fromLibrary` / `fromSearch` factories so search hits and library rows share the same shape.
+- **`lib/audio/audio_handler.dart`** — `WaxAudioHandler` extends `BaseAudioHandler`. Drives `just_audio` and exposes lock-screen / Control Center controls via `audio_service`.
+- **`lib/providers.dart`** — Riverpod graph. Notable providers: `apiClientProvider`, `audioHandlerProvider`, `libraryProvider` (async), `playlistsProvider` (async + optimistic mutations), `searchQueryProvider` + `searchResultsProvider` (350 ms debounce inside the FutureProvider), `mediaItemProvider` / `playbackStateProvider` / `positionProvider` (streams from `audio_service`), `isCurrentFavoriteProvider` + `toggleCurrentFavorite(ref)` for the now-playing heart. `initAudioService(container)` runs once in `main()` before `runApp`.
+- **`lib/screens/`** — Home, Library, Search, Playlists, PlaylistDetail, NowPlaying. **`lib/widgets/`** — MiniPlayer, TrackTile, TrackActions.
+- **Run**: `cd flutter && flutter pub get && flutter run --dart-define=API_BASE=http://<mac-ip>:3000`. Both devices must be on the same LAN.
 
 ### Frontend (`src/`)
 
@@ -55,20 +65,21 @@ Runtime deps (PATH): `yt-dlp`, `ffmpeg`. Falls back via `WAX_YT_DLP` / `WAX_FFMP
 - `ViewSmart.vue` — wired but no sidebar entry currently surfaces it. Renders `recent` / `top` smart playlists if `view.smartView` is set.
 
 **`src/components/`** (reusable UI):
-- `Sidebar.vue` — brand (textlogo.png) + Search / Settings nav + "Ta bibliothèque" with Favoris + user playlists. Each playlist gets a name-hashed gradient cover when no track thumbnail is available.
+- `Sidebar.vue` — brand (textlogo.png) + Search / Settings nav + "Ta bibliothèque" with Favoris, smart playlists ("Récemment ajoutés", "Les plus écoutés"), and user playlists. Each playlist gets a name-hashed gradient cover when no track thumbnail is available. Drop targets: Favoris and every user playlist accept dragged tracks (stream rows from search/discover/mix included; they're silently added to the library with `liked:false` first to get a stable id). Pulsing badge surfaces `library.ytdlpStatus.active + queued` when yt-dlp is busy.
 - `Player.vue` — sticky bottom bar. Audio elements (`audioRef`, `audio2Ref` for crossfade) bound to player store on mount. All transport controls + like/lyrics/crossfade/queue/mute/volume.
-- `TrackRow.vue` — the most reused component. Composes track-num (with eq SVG when current) + thumb + meta + persistent offline indicator (✓ when downloaded) + duration + hover-only actions (heart, mix, +playlist, ⬇offline-download, delete/remove).
+- `TrackRow.vue` — the most reused component. Composes track-num (with eq SVG when current) + thumb + meta + persistent offline indicator (✓ when downloaded; on hover it morphs into × to call `lib.removeDownload`) + duration + hover-only actions: heart, mix, +playlist, **rename** (✏️ via `promptModal` → `lib.renameTrack`), ⬇offline-download, **add-to-queue** (`player.addToQueue`), delete/remove. `draggable="true"` — `handleDragStart` writes both `wax/track` (rich JSON) and `text/plain` (track id) for compatibility with `useDragReorder`.
 - `QueuePanel.vue` — slide-in panel from right showing `player.queue` from `index+1` onwards.
 - `ModalRoot.vue` — single mounted modal that renders different variants (`confirm`, `prompt`, `lyrics`, `component`) based on `modalState.variant`. Imperatively driven via `lib/modal.js`.
 - `Toast.vue` — single toast bottom-center, driven by `lib/toast.js`.
 - `BulkAddBody.vue`, `AddToPlaylistBody.vue` — modal bodies.
+- `SettingsBody.vue` — Settings modal content. Sections: Apparence (light/dark theme switch via `prefs.setTheme`), Couleur d'accent (auto vs presets), Égaliseur (3-band ±12 dB sliders → `setEq` from `useVisualizer` + persisted in `prefs.eq`), Bibliothèque (orphan count + "Nettoyer" → `lib.purgeOrphans`).
 - `settings.js` — settings modal opener (custom because it has interactive state).
 
 **`src/stores/`** (Pinia):
-- `library.js` — `tracks`, `loading`, `search`, `libraryDownloads` (Map). Actions: `fetch`, `add(r, opts)` (opts.liked default true; opts.silent skips the toast), `remove`, `removeByYtId`, `deleteTrack`, `toggleFav` (toggles `liked` flag, doesn't delete), `_setLiked` (PATCH /api/library/:id), `reorder`, `downloadTrack`, `_listenLibraryProgress` (SSE), `smartTracks`. Getters: `favorites` (tracks where `liked !== false`), `filtered` (favorites + search filter), `isInLibrary(track)`, `isFavorite(track)`. **All mutations are local-first** (no full re-fetch round-trip after add/remove).
+- `library.js` — `tracks`, `loading`, `search`, `libraryDownloads` (Map), `ytdlpStatus: {active, queued}` (driven by SSE — server enriches every progress event with the current semaphore counters). Actions: `fetch`, `add(r, opts)` (opts.liked default true; opts.silent skips the toast), `remove`, `removeByYtId`, `deleteTrack`, `toggleFav` (toggles `liked` flag, doesn't delete), `_setLiked` (PATCH /api/library/:id), `reorder`, `renameTrack(id, title)` (PATCH /api/library/:id with title; optimistic + rollback on error), `removeDownload(id)` (DELETE /api/library/:id/download — strips `file` but keeps the metadata row), `purgeOrphans` (deletes every track with `liked:false` not referenced by any playlist), `downloadTrack`, `_listenLibraryProgress` (SSE), `smartTracks(kind)` ('recent' = last 30 by addedAt; 'top' = top 30 by playCount). Getters: `favorites` (tracks where `liked !== false`), `filtered` (favorites + search filter), `isInLibrary(track)`, `isFavorite(track)`. **All mutations are local-first** (no full re-fetch round-trip after add/remove).
 - `playlists.js` — `items`. Actions: `fetch`, `dropTrackLocally` (called by library.remove), `create`, `remove`, `rename`, `addTrack`, `addTracksBulk`, `removeTrack`, `reorder`.
-- `player.js` — `queue`, `index`, `playing`, `loading` (true between `loadAndPlay()` and the first audio `playing` event), `shuffle`, `repeat`, `volume`, `currentTime`, `duration`, `audioEl`, `audio2El`. Actions: `bindAudio` (wires `play`/`pause`/`playing`/`waiting`/`error`/`timeupdate`/`ended` events), `playFromList`, `loadAndPlay` (also prefetches the next streamable track in queue — look-ahead), `togglePlay`, `next`, `prev`, `stop`, `seekToPct`, `setVolume`, MediaSession setup, persistence (save/restore to localStorage), crossfade orchestration.
-- `prefs.js` — `volume`, `crossfadeEnabled`, `accentMode`, `accentColor`. Persisted via `wax:prefs` localStorage key.
+- `player.js` — `queue`, `index`, `playing`, `loading` (true between `loadAndPlay()` and the first audio `playing` event), `shuffle`, `repeat`, `volume`, `currentTime`, `duration`, `audioEl`, `audio2El`. Actions: `bindAudio` (wires `play`/`pause`/`playing`/`waiting`/`error`/`timeupdate`/`ended` events; on `error` shows a toast and auto-skips after 3 s if there's another track in the queue), `playFromList`, `loadAndPlay` (also prefetches the next streamable track in queue — look-ahead), `togglePlay`, `next`, `prev`, `stop`, `seekToPct`, `setVolume`, `addToQueue(trackId)` (inserts at `index+1`, blocks duplicates with a toast), MediaSession setup, persistence (save/restore to localStorage), crossfade orchestration.
+- `prefs.js` — `volume`, `crossfadeEnabled`, `crossfadeDuration`, `accentMode`, `accentColor`, `theme` ('dark' | 'light'), `eq: {bass, mid, treble}`. Persisted via `ytmp3:prefs` localStorage key. `setTheme(t)` toggles the `light` class on `documentElement` and saves; `applyTheme` is called on `load()` so the theme is reapplied at boot.
 - `accent.js` — palette derivation. Functions: `extractDominantColor`, `rgbToHsl`, `hexToHsl`, `applyHsl` (sets CSS vars on `documentElement`). Actions: `applyUserAccent`, `adaptToTrack` (extracts from thumbnail).
 - `view.js` — `name` ('download' | 'library' | 'playlist' | 'mix' | 'smart'), `selectedPlaylistId`, `smartView`. Actions: `switchTo`.
 - `mix.js` — `tempMix` (the 50-track YouTube Mix in flight). Actions: `streamFrom` (no bulk prefetch; relies on player look-ahead), `save` (creates playlist + adds metadata-only library entries with `liked: false` + bulk-attaches them — never downloads), `close`, `playAll`.
@@ -78,16 +89,16 @@ Runtime deps (PATH): `yt-dlp`, `ffmpeg`. Falls back via `WAX_YT_DLP` / `WAX_FFMP
 - `jobs.js` — `pending` Map<id, job> for download jobs in flight. `startDownload(url, hint, onReady)` + SSE listener.
 
 **`src/composables/`**:
-- `useVisualizer.js` — Web Audio API + AnalyserNode (FFT 64, smoothingTimeConstant 0.55). On `player.playing` → start RAF loop, drives all `.eq.is-playing rect` elements via inline `transform: scaleY(...)`. Sensitivity tuned: `minS 0.08`, `gain 1.4`, sqrt curve via `Math.pow(v, 0.55)`.
+- `useVisualizer.js` — Web Audio API graph: `audio → bass (lowshelf 100Hz) → mid (peaking 1kHz Q=1) → treble (highshelf 3kHz) → analyser → destination`. AnalyserNode FFT 64, smoothingTimeConstant 0.55. On `player.playing` → RAF loop drives all `.eq.is-playing rect` elements via inline `transform: scaleY(...)`. Sensitivity: `minS 0.08`, `gain 1.4`, sqrt curve via `Math.pow(v, 0.55)`. Exports `setEq(bass, mid, treble)` to update the BiquadFilter gains live (called by `SettingsBody.vue`).
 - `useLyrics.js` — `showLyrics` opens a lyrics modal, fetches from `/api/lyrics?artist=&title=`. Uses `guessArtistAndTitle(track)` to split YouTube titles like "Artist - Song (Slowed)".
-- `useDragReorder.js` — HTML5 DnD helpers, used by track rows in library/playlist views.
+- `useDragReorder.js` — HTML5 DnD helpers, used by track rows in library/playlist views. Sets `text/plain` to the track id; `Sidebar.vue` uses that as a fallback when `wax/track` is missing (so a row dragged with reorder semantics still works as a sidebar drop).
 
 **`src/lib/`**:
 - `api.js` — fetch wrapper, throws on non-2xx with the server's `{error}` message.
 - `modal.js` — imperative modal bus (`reactive` state). Functions: `confirmModal`, `promptModal`, `openComponentModal`, `openLyricsModal`, `closeModal`, `confirmFromModal`, `setModalCloseHandler` (cross-module write to `modalState.onCancel`).
 - `toast.js` — imperative toast bus (`showToast(msg, kind)`).
-- `format.js` — `fmtDuration`, `debounce`, `gradientFromString` (hash-based color, fades to `var(--main)`), `eqHtml`, `YT_REGEX`, `isYoutubeUrl`, `isPlaylistUrl`, `isStreamId`.
-- `icons.js` — all SVG icon constants.
+- `format.js` — `fmtDuration`, `debounce`, `gradientFromString` (hash-based color, fades to `var(--main)`), `eqHtml`, `YT_REGEX`, `isYoutubeUrl`, `isPlaylistUrl`, `isStreamId`, `onThumbError` / `onThumbLoad` (the maxres → hq → mq fallback chain — server upgrades stored thumbnails to `maxresdefault` on read, but YouTube sometimes serves a 120×90 grey placeholder with HTTP 200, so `onThumbLoad` checks `naturalWidth ≤ 120` and downgrades).
+- `icons.js` — all SVG icon constants. Includes `ICON_EDIT` (rename), `ICON_QUEUE_ADD`, `ICON_CLOCK` (recent), `ICON_CHART` (top).
 
 **`src/styles/style.css`** — single global stylesheet, ~1700 lines. CSS variables in `:root`:
 - Layout: `--main`, `--card`, `--card-hover`, `--text`, `--text-soft`, `--text-muted`, `--border`
@@ -200,6 +211,12 @@ Drag region for window movement: `-webkit-app-region: drag` on `.brand` and `.si
 - **`liked` flag semantic**: undefined or `true` → favori; only `false` excludes from Favoris. Backward compat with rows added before the field existed.
 - **Library mutation on download "ready"**: previously did a full `lib.fetch()` after each download. Now mutates `track.file = '/audio/<id>.mp3'` locally on the existing entry. Don't add another `lib.fetch()` here unless you want to nuke the local-first optimization.
 - **Search → TrackRow**: search results are converted to virtual `stream-<ytId>` tracks registered in the streams store, then rendered through TrackRow. Same component path as mix/playlist tracks. Spinner / heart / mix / look-ahead all reused.
+- **EQ filter chain is wired into the source path**: `useVisualizer.init()` builds `source → bass → mid → treble → analyser → destination` once. If you ever bypass the analyser you'll also bypass the EQ — keep them on the same chain.
+- **Drop targets in Sidebar**: `parseDrop(event)` reads `wax/track` (rich JSON) first, then falls back to `text/plain` (track id, set by `useDragReorder`). Don't strip either or sidebar drops break for one drag origin or the other. Stream rows are silently added to the library with `liked:false` before being attached to a playlist (so playlists always reference real library ids).
+- **Theme class lives on `documentElement`**: `prefs.applyTheme()` toggles `.light` on `<html>`. Light-mode CSS is keyed on `:root.light` overrides. Don't move the class to `<body>` without rewriting every override.
+- **Thumbnail fallback chain**: server upgrades stored thumbs to `maxresdefault` on read. Templates that render thumbs MUST wire `@error="onThumbError"` AND `@load="onThumbLoad"` — the load handler is what catches YouTube's silent 120×90 grey placeholder (HTTP 200, no `onerror`).
+- **`addToQueue` insert position**: inserts at `index+1` so the next-up slot is predictable. If the queue is empty it inserts at 0 — which means hitting "Ajouter à la queue" with no track playing primes the queue but does NOT auto-start playback.
+- **Stream error auto-skip**: the audio `error` listener waits 3 s before calling `next()`. The delay exists so a transient blip doesn't skip a track the user wanted; if you shorten it, expect noisier behavior on flaky networks.
 
 ## Migration history (context for understanding the codebase)
 
@@ -213,12 +230,11 @@ The project went through **two major refactors**:
 ## Active TODOs / known gaps
 
 - `build/icon.icns` and `build/icon.ico` not committed — `dist:mac` / `dist:win` will fail until they're added.
-- No code signing / notarization configured.
-- Smart playlists (`recent`, `top`) are wired but no sidebar entry surfaces them — they're reachable only programmatically.
+- No code signing / notarization configured (desktop or iOS).
 - No keyboard shortcut help overlay (Space play/pause + Esc close-modal exist but aren't documented in-app).
-- No "remove from offline" UI (the backend endpoint `DELETE /api/library/:id/download` exists but isn't wired to a button).
-- "Non-favorite library tracks" (added by mix.save) accumulate silently — no garbage-collection UI to purge orphans (tracks with `liked:false` and not referenced by any playlist).
 - Discover never auto-refreshes when favorites change. User must click the ↻ button on the section header.
+- Mobile (Flutter) is read-mostly: no offline-download trigger, no playlist drag-reorder, no mix view yet — all those endpoints exist server-side, just not wired in the iOS UI.
+- Root-level `main.cjs` is a stale duplicate of `electron/main.cjs` (not referenced by `package.json`). Should be removed.
 
 ## Communication style with Dylan
 

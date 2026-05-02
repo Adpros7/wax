@@ -1,6 +1,6 @@
 # Wax
 
-> A modern, desktop YouTube → MP3 player. Stream by default, download for offline. Built as a packaged Electron app for macOS and Windows.
+> A modern YouTube → MP3 player. Stream by default, download for offline. Packaged Electron app for macOS / Windows / Linux, plus a Flutter companion app for iOS that talks to the same backend.
 
 ![placeholder](./public/textlogo.png)
 
@@ -30,10 +30,11 @@
 
 | Layer | Tech |
 |---|---|
-| Frontend | Vue 3 (Composition API, `<script setup>`) + Pinia + Vite |
+| Frontend (desktop) | Vue 3 (Composition API, `<script setup>`) + Pinia + Vite |
 | Backend | Express 4 (Node 18+) — REST + SSE for download progress |
 | Desktop | Electron 33 + electron-builder (DMG / NSIS / AppImage) |
-| Audio | HTMLAudioElement + Web Audio API (AnalyserNode) |
+| Mobile (iOS) | Flutter 3 + Riverpod + just_audio + audio_service (talks to the same Express backend over the LAN) |
+| Audio | HTMLAudioElement + Web Audio API (AnalyserNode + BiquadFilter chain for EQ) |
 | Extraction | yt-dlp (subprocess) for stream URLs and downloads |
 | Conversion | ffmpeg (called by yt-dlp) for MP3 320 kbps encoding |
 | Fonts | Inter (body) + Bricolage Grotesque (display, hero h1) |
@@ -105,6 +106,18 @@ The `extraResources` block in `electron-builder.yml` is wired to bundle yt-dlp +
 
 For deeper detail, read [`CLAUDE.md`](./CLAUDE.md) — it's a complete map of the codebase intended to bootstrap any new dev (or Claude session) without prior context.
 
+## Mobile companion (`flutter/`)
+
+`flutter/` is a Flutter 3 / Riverpod iOS app that hits the same Express backend over the LAN — your Mac runs Wax, your phone plays from it. Reuses every endpoint (`/api/library`, `/api/playlists`, `/api/search`, `/api/stream/:id`, `/api/trending`), so there's nothing mobile-specific server-side. Audio playback goes through `just_audio` + `audio_service` for proper iOS lock-screen / Control Center integration.
+
+```bash
+cd flutter
+flutter pub get
+flutter run --dart-define=API_BASE=http://<your-mac-ip>:3000
+```
+
+The `API_BASE` define is baked at build time so each TestFlight / sideload can target a different server without source edits.
+
 ## Project layout
 
 ```
@@ -115,15 +128,21 @@ wax/
 ├── server.js              # Express backend (yt-dlp orchestration, JSON storage)
 ├── library/               # runtime data dir (audio/, previews/, *.json) — gitignored
 ├── public/                # static assets served at root (logo.png, textlogo.png)
-├── src/
+├── src/                   # desktop renderer (Vue 3 + Pinia)
 │   ├── main.js            # Vue entry
 │   ├── App.vue            # root component — view switcher
 │   ├── components/        # reusable UI (Sidebar, Player, TrackRow, Modal, ...)
 │   ├── views/             # one per "page" (Search, Library, Playlist, Mix, Smart)
 │   ├── stores/            # Pinia: library, playlists, player, search, mix, ...
-│   ├── composables/       # useVisualizer, useLyrics, useDragReorder
+│   ├── composables/       # useVisualizer (incl. EQ), useLyrics, useDragReorder
 │   ├── lib/               # api, modal bus, toast bus, format/icons helpers
-│   └── styles/style.css   # single global stylesheet (~1700 lines)
+│   └── styles/style.css   # single global stylesheet (~1800 lines)
+├── flutter/               # iOS companion app (Flutter 3 + Riverpod, same backend)
+│   ├── lib/api/           # Dio client + Track/Playlist models
+│   ├── lib/audio/         # just_audio + audio_service handler
+│   ├── lib/screens/       # Home / Library / Search / Playlists / NowPlaying
+│   ├── lib/widgets/       # MiniPlayer, TrackTile, TrackActions
+│   └── pubspec.yaml
 ├── index.html             # Vite entry HTML
 ├── vite.config.js         # /api proxy to localhost:3000
 ├── electron-builder.yml   # DMG / NSIS / AppImage configs
