@@ -36,7 +36,7 @@ export async function showLyrics() {
     const data = await api(`/api/lyrics?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}`);
     patchLyricsModal({ lyricsStatus: 'ok', lyricsContent: data.lyrics });
   } catch (e) {
-    const isNotFound = e.message === 'Paroles introuvables' || /not found/i.test(e.message);
+    const isNotFound = /lyrics not found/i.test(e.message) || e.message === 'Paroles introuvables';
     const msg = isNotFound
       ? t('lyrics.not_found_detail', { artist, title })
       : t('common.error_prefix', e.message);

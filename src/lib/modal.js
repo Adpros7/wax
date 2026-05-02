@@ -1,6 +1,11 @@
 // Imperative modal bus. Stores call `openModal` / `confirmModal` /
 // `promptModal` as if they were old-school imperative APIs; the
 // <ModalRoot> component subscribes and renders.
+//
+// Label fallbacks: every helper here leaves `confirmLabel` / `cancelLabel`
+// empty by default. ModalRoot.vue resolves the missing labels at render
+// time via `modalState.X || t('common.X')`, so they always follow the
+// active locale — no module-load freeze of the translation.
 import { reactive, markRaw } from 'vue';
 import { t } from './i18n';
 
@@ -12,8 +17,8 @@ export const modalState = reactive({
   promptDefault: '',
   promptPlaceholder: '',
   variant: 'generic',    // 'confirm' | 'prompt' | 'component' | 'lyrics' | 'settings' | 'bulk'
-  confirmLabel: 'OK',
-  cancelLabel: 'Annuler',
+  confirmLabel: '',
+  cancelLabel: '',
   danger: false,
   wide: false,
   // Component variant — render any Vue component as the body
@@ -63,7 +68,7 @@ export function confirmFromModal() {
   }
 }
 
-export function confirmModal({ title, message, confirmLabel = 'Confirmer', danger = false }) {
+export function confirmModal({ title, message, confirmLabel = '', danger = false }) {
   return new Promise((resolve) => {
     let done = false;
     const finish = (v) => {
@@ -77,6 +82,7 @@ export function confirmModal({ title, message, confirmLabel = 'Confirmer', dange
       title,
       message,
       confirmLabel,
+      cancelLabel: '',
       danger,
       wide: false,
       component: null,
@@ -87,7 +93,7 @@ export function confirmModal({ title, message, confirmLabel = 'Confirmer', dange
   });
 }
 
-export function promptModal({ title, label = '', defaultValue = '', placeholder = '', confirmLabel = 'OK' }) {
+export function promptModal({ title, label = '', defaultValue = '', placeholder = '', confirmLabel = '' }) {
   return new Promise((resolve) => {
     let done = false;
     const finish = (v) => {
@@ -114,6 +120,7 @@ export function promptModal({ title, label = '', defaultValue = '', placeholder 
       promptValue: defaultValue,
       promptPlaceholder: placeholder,
       confirmLabel,
+      cancelLabel: '',
       danger: false,
       wide: false,
       component: null,
@@ -130,7 +137,7 @@ export function openComponentModal({
   title,
   component,
   componentProps = {},
-  confirmLabel,
+  confirmLabel = '',
   danger = false,
   wide = false,
   onConfirm,
@@ -141,6 +148,7 @@ export function openComponentModal({
     variant: 'component',
     title,
     confirmLabel,
+    cancelLabel: '',
     danger,
     wide,
     component: markRaw(component),

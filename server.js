@@ -179,7 +179,7 @@ app.get('/api/mix/:videoId', (req, res) => {
 app.get('/api/lyrics', (req, res) => {
   const artist = String(req.query.artist || '').trim();
   const title = String(req.query.title || '').trim();
-  if (!artist || !title) return res.status(400).json({ error: 'artist + title requis' });
+  if (!artist || !title) return res.status(400).json({ error: 'artist + title required' });
 
   const url = `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`;
   https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (r) => {
@@ -191,13 +191,13 @@ app.get('/api/lyrics', (req, res) => {
         if (json.lyrics && json.lyrics.trim()) {
           res.json({ lyrics: json.lyrics, artist, title });
         } else {
-          res.status(404).json({ error: 'Paroles introuvables' });
+          res.status(404).json({ error: 'Lyrics not found' });
         }
       } catch {
         res.status(404).json({ error: 'Paroles introuvables' });
       }
     });
-  }).on('error', () => res.status(500).json({ error: 'Erreur réseau' }));
+  }).on('error', () => res.status(500).json({ error: 'Network error' }));
 });
 
 app.get('/api/info', async (req, res) => {
@@ -489,7 +489,7 @@ function startJob(job) {
   ytdlp.on('close', (code) => {
     if (code !== 0 || !fs.existsSync(expectedFile)) {
       job.status = 'error';
-      job.error = stderr.split('\n').filter(l => l.trim()).slice(-3).join(' | ').slice(0, 500) || 'Erreur inconnue';
+      job.error = stderr.split('\n').filter(l => l.trim()).slice(-3).join(' | ').slice(0, 500) || 'Unknown error';
       broadcast(job, { type: 'error', error: job.error });
       try { fs.unlinkSync(expectedFile); } catch {}
       try { fs.unlinkSync(infoJsonFile); } catch {}
@@ -634,7 +634,7 @@ app.post('/api/import', express.json({ limit: '32mb' }), (req, res) => {
 
 app.post('/api/library/add', (req, res) => {
   const { ytId, title, uploader, duration, thumbnail, url, liked } = req.body || {};
-  if (!ytId || !title) return res.status(400).json({ error: 'ytId + title requis' });
+  if (!ytId || !title) return res.status(400).json({ error: 'ytId + title required' });
   const lib = getLibrary();
   const existing = lib.find(t => t.ytId === ytId);
   if (existing) return res.json({ track: existing, duplicate: true });
@@ -694,7 +694,7 @@ app.delete('/api/library/:trackId/download', (req, res) => {
 
 app.put('/api/library/order', (req, res) => {
   const trackIds = Array.isArray(req.body?.trackIds) ? req.body.trackIds : null;
-  if (!trackIds) return res.status(400).json({ error: 'trackIds requis' });
+  if (!trackIds) return res.status(400).json({ error: 'trackIds required' });
   const lib = getLibrary();
   const byId = new Map(lib.map(t => [t.id, t]));
   const reordered = [];
@@ -756,7 +756,7 @@ app.get('/api/playlists', (req, res) => {
 
 app.post('/api/playlists', (req, res) => {
   const name = String(req.body?.name || '').trim();
-  if (!name) return res.status(400).json({ error: 'Nom requis' });
+  if (!name) return res.status(400).json({ error: 'Name required' });
   const pls = getPlaylists();
   const playlist = {
     id: crypto.randomBytes(6).toString('hex'),
@@ -797,7 +797,7 @@ app.post('/api/playlists/:id/tracks', (req, res) => {
   const pl = pls.find(p => p.id === req.params.id);
   if (!pl) return res.status(404).json({ error: 'Playlist introuvable' });
   const trackId = String(req.body?.trackId || '');
-  if (!trackId) return res.status(400).json({ error: 'trackId requis' });
+  if (!trackId) return res.status(400).json({ error: 'trackId required' });
   const lib = getLibrary();
   if (!lib.find(t => t.id === trackId)) return res.status(404).json({ error: 'Piste introuvable' });
   if (!pl.trackIds.includes(trackId)) pl.trackIds.push(trackId);
