@@ -70,13 +70,24 @@
 
 ## Install & dev
 
-Prerequisites: **Node 18+**, **yt-dlp**, **ffmpeg** on PATH.
+Prerequisites: **Node 18+**, **yt-dlp**, **ffmpeg** on `PATH`.
+
+**macOS**
+
 ```bash
-brew install yt-dlp ffmpeg          # macOS
-# or sudo apt install yt-dlp ffmpeg # Debian/Ubuntu (yt-dlp via pip if needed)
+brew install yt-dlp ffmpeg
 ```
 
+**Debian / Ubuntu**
+
+```bash
+sudo apt install yt-dlp ffmpeg
+```
+
+(Or `pip install yt-dlp` if your distro is behind on packaging.)
+
 Then:
+
 ```bash
 git clone https://github.com/dgadacha/wax.git
 cd wax
@@ -89,10 +100,16 @@ npm run dev
 ## Build for distribution
 
 ```bash
-npm run dist:mac     # → release/Wax-{version}.dmg (arm64 + x64)
-npm run dist:win     # → release/Wax-Setup-{version}.exe (NSIS)
-npm run dist:linux   # → release/Wax-{version}.AppImage
+npm run dist:mac
+npm run dist:win
+npm run dist:linux
 ```
+
+Outputs:
+
+- `dist:mac` → `release/Wax-{version}.dmg` (arm64 + x64)
+- `dist:win` → `release/Wax-Setup-{version}.exe` (NSIS)
+- `dist:linux` → `release/Wax-{version}.AppImage`
 
 Required assets (drop into `build/`):
 - `build/icon.icns` — macOS app icon (1024×1024 source recommended)

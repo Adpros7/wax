@@ -613,18 +613,14 @@
 <section class="s" id="start">
   <div class="container">
     <h2 class="reveal">Try it in 30 seconds.</h2>
-    <p class="lede reveal">No installer yet — clone, install, run. macOS / Windows / Linux. You'll need <code>node 18+</code>, <code>yt-dlp</code>, <code>ffmpeg</code> on your PATH.</p>
+    <p class="lede reveal">No installer yet — clone, install, run. macOS / Windows / Linux. You'll need <code>node 18+</code>, <code>yt-dlp</code>, <code>ffmpeg</code> on your PATH. The block below is copy-paste ready (macOS / Linux); on Windows install yt-dlp / ffmpeg via your favorite package manager and skip the brew line.</p>
 
     <div class="reveal" style="margin-bottom: 32px;">
-      <div class="code-block">
-<span class="c-comment"># macOS / Linux</span>
-<span class="c-cmd">brew install</span> yt-dlp ffmpeg
-
-<span class="c-cmd">git clone</span> https://github.com/dgadacha/wax.git
-<span class="c-cmd">cd</span> wax
-<span class="c-cmd">npm install</span>
-<span class="c-cmd">npm run dev</span>      <span class="c-comment"># Vite + Express + Electron, with HMR</span>
-      </div>
+      <div class="code-block">brew install yt-dlp ffmpeg
+git clone https://github.com/dgadacha/wax.git
+cd wax
+npm install
+npm run dev</div>
     </div>
 
     <h3 style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.15rem; font-weight: 700; letter-spacing: -0.015em; margin-bottom: 14px;">Stack</h3>
