@@ -1,8 +1,10 @@
 # Wax
 
-> A modern desktop YouTube → MP3 player. Stream by default, download for offline. Packaged Electron app for macOS / Windows / Linux.
+<p align="center">
+  <img src="./public/textlogo-dark.png" alt="Wax" width="640" />
+</p>
 
-![placeholder](./public/textlogo.png)
+> A modern desktop YouTube → MP3 player. Stream by default, download for offline. Packaged Electron app for macOS / Windows / Linux.
 
 > ⚠️ Wax is a personal client built on [`yt-dlp`](https://github.com/yt-dlp/yt-dlp). It hosts and redistributes nothing — every byte of audio is fetched at runtime by your own machine. Use it for content you own, content under permissive licenses, or content you have permission to download. YouTube's Terms of Service apply; copyright compliance is on you. See the full [Disclaimer](#disclaimer).
 
@@ -150,6 +152,10 @@ wax/
 ## License
 
 Wax is released under the [MIT License](./LICENSE). Use it, fork it, modify it, ship it — just keep the copyright notice.
+
+## Support
+
+Wax is free and open source — and it always will be. If it saves you time or you just want to say thanks, you can <a href="https://www.buymeacoffee.com/waxmusicplayer">buy me a coffee ☕</a>. Pure gratitude tip; no feature is gated behind it.
 
 ## Disclaimer
 
