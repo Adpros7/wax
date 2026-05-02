@@ -164,7 +164,7 @@ onMounted(() => {
       :title="offlineRing.isConv ? 'Conversion MP3…' : `Téléchargement ${offlineRing.pct}%`"
     >
       <svg viewBox="0 0 24 24" fill="none" :class="{ 'is-converting': offlineRing.isConv }">
-        <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.18)" stroke-width="1.6" fill="none" />
+        <circle class="ring-track" cx="12" cy="12" r="9" stroke-width="1.6" fill="none" />
         <circle
           cx="12" cy="12" r="9"
           stroke="currentColor" stroke-width="1.8" fill="none"

@@ -7,6 +7,7 @@
   --text: #ffffff;
   --text-soft: #b3b3b3;
   --text-muted: #6a6a73;
+  --on-accent: #000;            /* text color sitting on top of --accent fills */
   --accent: #A855F7;
   --accent-bright: #C084FC;
   --accent-dark: #7E22CE;
@@ -15,6 +16,20 @@
   --accent-glow: hsla(271, 91%, 65%, 0.35);
   --border: rgba(255, 255, 255, 0.1);
   --border-soft: rgba(255, 255, 255, 0.06);
+  /* Theme-neutral surface tints — flip in light mode so hover/active states
+     stay legible on white backgrounds. Use these everywhere instead of
+     hardcoded `rgba(255,255,255,...)` / `rgba(0,0,0,...)` overlays. */
+  --surface-1: rgba(255, 255, 255, 0.04);   /* subtle row hover */
+  --surface-2: rgba(255, 255, 255, 0.06);   /* default hover */
+  --surface-3: rgba(255, 255, 255, 0.10);   /* active / pressed */
+  --surface-4: rgba(255, 255, 255, 0.20);   /* sliders / progress track */
+  --modal-bg: #282828;
+  --modal-input: #3e3e3e;
+  --modal-input-focus: #4a4a4a;
+  --pill-bg: #2a2a2a;
+  --pill-bg-focus: #333;
+  --page-body-shade: rgba(0, 0, 0, 0.6); /* dark fade under hero */
+  --logo-filter: none;
   --error: #f15e6c;
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
@@ -35,15 +50,42 @@ html.light {
   --elev: #ececf2;
   --text: #111111;
   --text-soft: #55556a;
-  --text-muted: #9090a0;
+  --text-muted: #8080a0;
+  --on-accent: #ffffff;
   --border: rgba(0, 0, 0, 0.1);
   --border-soft: rgba(0, 0, 0, 0.05);
+  --surface-1: rgba(0, 0, 0, 0.035);
+  --surface-2: rgba(0, 0, 0, 0.06);
+  --surface-3: rgba(0, 0, 0, 0.09);
+  --surface-4: rgba(0, 0, 0, 0.12);
+  --modal-bg: #ffffff;
+  --modal-input: #f0f0f5;
+  --modal-input-focus: #e6e6ee;
+  --pill-bg: #ececf2;
+  --pill-bg-focus: #e0e0e8;
+  /* No dark fade under the hero in light mode — would create an ugly band. */
+  --page-body-shade: transparent;
+  /* The textlogo PNG is white-on-transparent; invert it for light mode. */
+  --logo-filter: invert(1) hue-rotate(180deg);
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.18);
 }
 
 html.light ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); }
+
+/* A handful of selectors are too contextual for a single token swap.
+   Patch them specifically for light mode here. */
+html.light .modal-overlay { background: rgba(40, 40, 60, 0.45); }
+html.light .lyrics-content { background: var(--surface-2); color: var(--text); }
+html.light .icon-btn.round { background: rgba(0, 0, 0, 0.45); color: #fff; }
+html.light .icon-btn.round:hover:not(:disabled) { background: rgba(0, 0, 0, 0.6); color: #fff; }
+/* Track row "is-playing" highlight reads as a faint white tint in dark; need
+   an accent-tinted band in light to stay distinguishable. */
+html.light .track.is-playing { background: var(--accent-soft); }
+/* The hero accent gradient + its glow can wash out into pure white on a
+   light page; tone the glow down so the band has a visible bottom edge. */
+html.light .hero::before { opacity: 0.5; }
 
 * {
   box-sizing: border-box;
@@ -75,13 +117,13 @@ a { color: inherit; text-decoration: none; }
 ::-webkit-scrollbar { width: 12px; height: 12px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--surface-3);
   border-radius: 6px;
   border: 3px solid transparent;
   background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--surface-4);
   background-clip: content-box;
 }
 
@@ -146,6 +188,7 @@ a { color: inherit; text-decoration: none; }
   object-position: left top;
   display: block;
   margin-left: -8px;
+  filter: var(--logo-filter);
 }
 .brand span {
   font-family: var(--font-body);
@@ -205,7 +248,7 @@ a { color: inherit; text-decoration: none; }
   padding: 0 5px;
   border-radius: 999px;
   background: var(--accent);
-  color: #000;
+  color: var(--on-accent);
   font-size: 0.68rem;
   font-weight: 700;
   animation: pulse 1.5s ease-in-out infinite;
@@ -232,8 +275,8 @@ a { color: inherit; text-decoration: none; }
   cursor: pointer;
   transition: background 0.15s;
 }
-.library-item:hover { background: rgba(255, 255, 255, 0.05); }
-.library-item.active { background: rgba(255, 255, 255, 0.1); }
+.library-item:hover { background: var(--surface-2); }
+.library-item.active { background: var(--surface-3); }
 .lib-icon {
   width: 48px;
   height: 48px;
@@ -347,7 +390,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .page-body {
-  background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, transparent 220px), var(--main);
+  background: linear-gradient(180deg, var(--page-body-shade) 0%, transparent 220px), var(--main);
   padding: 24px 32px 48px;
   position: relative;
 }
@@ -364,7 +407,7 @@ a { color: inherit; text-decoration: none; }
   border-radius: 50%;
   background: var(--accent);
   border: none;
-  color: #000;
+  color: var(--on-accent);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -411,7 +454,7 @@ a { color: inherit; text-decoration: none; }
 }
 .icon-btn:hover:not(:disabled) {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-2);
   transform: scale(1.04);
 }
 .icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -425,7 +468,7 @@ a { color: inherit; text-decoration: none; }
 
 .icon-btn.play-btn {
   background: var(--text);
-  color: #000;
+  color: var(--main);
   width: 40px;
   height: 40px;
 }
@@ -440,7 +483,7 @@ a { color: inherit; text-decoration: none; }
 
 .primary-btn {
   background: var(--accent);
-  color: #000;
+  color: var(--on-accent);
   border: none;
   padding: 12px 32px;
   border-radius: 999px;
@@ -507,13 +550,13 @@ a { color: inherit; text-decoration: none; }
 .input-group {
   display: flex;
   align-items: center;
-  background: #2a2a2a;
+  background: var(--pill-bg);
   border-radius: 999px;
   padding: 0 8px 0 16px;
   height: 48px;
   transition: background 0.15s;
 }
-.input-group:focus-within { background: #333; }
+.input-group:focus-within { background: var(--pill-bg-focus); }
 button:focus, button:focus-visible { outline: none; }
 input:focus, input:focus-visible { outline: none; }
 .input-icon {
@@ -546,7 +589,7 @@ input:focus, input:focus-visible { outline: none; }
   justify-content: center;
   transition: all 0.15s;
 }
-.paste-btn:hover { color: var(--text); background: rgba(255, 255, 255, 0.1); }
+.paste-btn:hover { color: var(--text); background: var(--surface-3); }
 .paste-btn svg { width: 18px; height: 18px; }
 
 .preview-card {
@@ -615,7 +658,7 @@ input:focus, input:focus-visible { outline: none; }
   cursor: pointer;
   transition: background 0.1s ease;
 }
-.playlist-source-list li:hover { background: rgba(255, 255, 255, 0.04); }
+.playlist-source-list li:hover { background: var(--surface-1); }
 .playlist-source-list input[type="checkbox"] {
   width: 16px; height: 16px;
   accent-color: var(--accent);
@@ -660,7 +703,7 @@ input:focus, input:focus-visible { outline: none; }
 .radio-pill input:checked + span {
   background: var(--text);
   border-color: var(--text);
-  color: #000;
+  color: var(--main);
 }
 
 /* Jobs */
@@ -693,7 +736,7 @@ input:focus, input:focus-visible { outline: none; }
 .progress-bar {
   width: 100%;
   height: 4px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--surface-3);
   border-radius: 999px;
   overflow: hidden;
 }
@@ -740,9 +783,9 @@ input:focus, input:focus-visible { outline: none; }
   border-radius: 4px;
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.04) 0%,
-    rgba(255, 255, 255, 0.10) 50%,
-    rgba(255, 255, 255, 0.04) 100%
+    var(--surface-1) 0%,
+    var(--surface-3) 50%,
+    var(--surface-1) 100%
   );
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
@@ -767,12 +810,13 @@ input:focus, input:focus-visible { outline: none; }
 .track-offline-indicator.is-done { color: var(--accent-bright); }
 .track-offline-indicator.is-downloading { color: var(--accent-bright); }
 .track-offline-indicator.is-downloading .ring-progress { transition: stroke-dashoffset 0.2s linear; }
+.track-offline-indicator.is-downloading .ring-track { stroke: var(--surface-4); }
 .track-offline-indicator.is-downloading svg.is-converting { animation: ringPulse 1.2s ease-in-out infinite; }
 @keyframes ringPulse {
   0%, 100% { opacity: 0.5; }
   50% { opacity: 1; }
 }
-.track:hover { background: rgba(255, 255, 255, 0.06); }
+.track:hover { background: var(--surface-2); }
 .track.is-playing .track-title { color: var(--accent-bright); }
 .track[draggable="true"] { cursor: grab; }
 .track[draggable="true"]:active { cursor: grabbing; }
@@ -925,7 +969,7 @@ input:focus, input:focus-visible { outline: none; }
   width: 22px;
   height: 22px;
   margin: -11px 0 0 -11px;
-  border: 2.5px solid rgba(255, 255, 255, 0.25);
+  border: 2.5px solid var(--surface-4);
   border-top-color: var(--accent-bright);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
@@ -939,7 +983,7 @@ body.viz-running .eq.is-playing rect {
 .track-num-spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.18);
+  border: 2px solid var(--surface-4);
   border-top-color: var(--accent-bright);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
@@ -1015,7 +1059,7 @@ body.viz-running .eq.is-playing rect {
   width: 32px;
   height: 32px;
   margin: -16px 0 0 -16px;
-  border: 3px solid rgba(255, 255, 255, 0.25);
+  border: 3px solid var(--surface-4);
   border-top-color: var(--accent-bright);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
@@ -1136,12 +1180,12 @@ input[type="range"] {
 }
 input[type="range"]::-webkit-slider-runnable-track {
   height: 4px;
-  background: linear-gradient(to right, var(--text) var(--pct), rgba(255, 255, 255, 0.2) var(--pct));
+  background: linear-gradient(to right, var(--text) var(--pct), var(--surface-4) var(--pct));
   border-radius: 999px;
 }
 input[type="range"]::-moz-range-track {
   height: 4px;
-  background: linear-gradient(to right, var(--text) var(--pct), rgba(255, 255, 255, 0.2) var(--pct));
+  background: linear-gradient(to right, var(--text) var(--pct), var(--surface-4) var(--pct));
   border-radius: 999px;
 }
 input[type="range"]::-webkit-slider-thumb {
@@ -1169,10 +1213,10 @@ input[type="range"]::-moz-range-thumb {
 input[type="range"]:hover::-webkit-slider-thumb { opacity: 1; }
 input[type="range"]:hover::-moz-range-thumb { opacity: 1; }
 input[type="range"]:hover::-webkit-slider-runnable-track {
-  background: linear-gradient(to right, var(--accent-bright) var(--pct), rgba(255, 255, 255, 0.2) var(--pct));
+  background: linear-gradient(to right, var(--accent-bright) var(--pct), var(--surface-4) var(--pct));
 }
 input[type="range"]:hover::-moz-range-track {
-  background: linear-gradient(to right, var(--accent-bright) var(--pct), rgba(255, 255, 255, 0.2) var(--pct));
+  background: linear-gradient(to right, var(--accent-bright) var(--pct), var(--surface-4) var(--pct));
 }
 
 /* Modal */
@@ -1193,7 +1237,7 @@ input[type="range"]:hover::-moz-range-track {
 }
 .modal-content {
   position: relative;
-  background: #282828;
+  background: var(--modal-bg);
   border-radius: var(--radius-lg);
   padding: 24px;
   max-width: 460px;
@@ -1232,19 +1276,19 @@ input[type="range"]:hover::-moz-range-track {
   align-items: center;
   font-weight: 500;
 }
-.modal-pl-item:hover { background: rgba(255, 255, 255, 0.06); }
+.modal-pl-item:hover { background: var(--surface-2); }
 .modal-pl-item .pl-mini-count { color: var(--text-soft); font-size: 0.8rem; font-weight: 400; }
 .modal input[type="text"] {
   width: 100%;
   padding: 12px 16px;
   border: none;
   border-radius: 4px;
-  background: #3e3e3e;
+  background: var(--modal-input);
   color: var(--text);
   font-size: 1rem;
   outline: none;
 }
-.modal input[type="text"]:focus { background: #4a4a4a; }
+.modal input[type="text"]:focus { background: var(--modal-input-focus); }
 .modal-message {
   color: var(--text-soft);
   font-size: 0.95rem;
@@ -1278,14 +1322,14 @@ input[type="range"]:hover::-moz-range-track {
 .bulk-search {
   flex: 1;
   padding: 8px 12px;
-  background: #3e3e3e;
+  background: var(--modal-input);
   border: none;
   border-radius: 4px;
   color: var(--text);
   font-size: 0.9rem;
   outline: none;
 }
-.bulk-search:focus { background: #4a4a4a; }
+.bulk-search:focus { background: var(--modal-input-focus); }
 .bulk-track-list {
   flex: 1;
   min-height: 0;
@@ -1305,7 +1349,7 @@ input[type="range"]:hover::-moz-range-track {
   cursor: pointer;
   transition: background 0.1s;
 }
-.bulk-track-item:hover { background: rgba(255, 255, 255, 0.06); }
+.bulk-track-item:hover { background: var(--surface-2); }
 .bulk-track-item input[type="checkbox"] {
   width: 18px;
   height: 18px;
@@ -1408,7 +1452,7 @@ input[type="range"]:hover::-moz-range-track {
   transition: background 0.1s;
   position: relative;
 }
-.queue-item:hover { background: rgba(255, 255, 255, 0.06); }
+.queue-item:hover { background: var(--surface-2); }
 .queue-item.is-current { background: var(--accent-soft); }
 .queue-item.is-current .qi-title { color: var(--accent-bright); }
 .queue-item.is-dragging { opacity: 0.35; }
@@ -1552,7 +1596,7 @@ input[type="range"]:hover::-moz-range-track {
 .settings-mode {
   flex: 1;
   padding: 10px 16px;
-  background: #2a2a2a;
+  background: var(--pill-bg);
   border: 1px solid transparent;
   border-radius: 6px;
   color: var(--text-soft);
@@ -1586,7 +1630,7 @@ input[type="range"]:hover::-moz-range-track {
 .color-swatch:hover { transform: scale(1.12); }
 .color-swatch.active {
   border-color: var(--text);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 3px var(--surface-3);
 }
 
 /* EQ sliders */
@@ -1656,8 +1700,9 @@ input[type="range"]:hover::-moz-range-track {
   bottom: 100px;
   left: 50%;
   transform: translateX(-50%);
-  background: #282828;
+  background: var(--modal-bg);
   color: var(--text);
+  border: 1px solid var(--border);
   padding: 12px 24px;
   border-radius: 999px;
   font-size: 0.9rem;
@@ -1667,7 +1712,7 @@ input[type="range"]:hover::-moz-range-track {
   animation: toastIn 0.25s ease;
 }
 .toast.error { background: var(--error); color: #fff; }
-.toast.success { background: var(--accent); color: #000; font-weight: 700; }
+.toast.success { background: var(--accent); color: var(--on-accent); font-weight: 700; }
 @keyframes toastIn {
   from { opacity: 0; transform: translate(-50%, 8px); }
   to { opacity: 1; transform: translate(-50%, 0); }
@@ -1773,7 +1818,7 @@ input[type="range"]:hover::-moz-range-track {
   border-radius: 50%;
   background: var(--accent);
   border: none;
-  color: #000;
+  color: var(--on-accent);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -1794,7 +1839,7 @@ input[type="range"]:hover::-moz-range-track {
   content: '';
   width: 14px;
   height: 14px;
-  border: 2px solid #000;
+  border: 2px solid var(--on-accent);
   border-top-color: transparent;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
@@ -1820,7 +1865,7 @@ input[type="range"]:hover::-moz-range-track {
 .preview-btn.is-playing {
   background: var(--accent);
   border-color: var(--accent);
-  color: #000;
+  color: var(--on-accent);
 }
 .preview-btn.is-playing .icon-play { display: none; }
 .preview-btn.is-playing .icon-stop { display: block; }
@@ -1840,7 +1885,7 @@ input[type="range"]:hover::-moz-range-track {
   animation: spin 0.7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.search-result:hover { background: rgba(255, 255, 255, 0.06); }
+.search-result:hover { background: var(--surface-2); }
 .search-result-thumb {
   width: 80px;
   height: 45px;
