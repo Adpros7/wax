@@ -15,6 +15,7 @@ export const useLibraryStore = defineStore('library', {
     loading: true,
     search: '',                 // current filter
     libraryDownloads: new Map(), // trackId -> { progress, phase }
+    ytdlpStatus: { active: 0, queued: 0 },
   }),
   getters: {
     inLibraryByYtId: (state) => (ytId) => state.tracks.some((t) => t.ytId === ytId),
@@ -235,6 +236,46 @@ export const useLibraryStore = defineStore('library', {
         this.fetch();
       }
     },
+    async renameTrack(trackId, newTitle) {
+      const t = this.findById(trackId);
+      if (!t) return;
+      const old = t.title;
+      t.title = newTitle;
+      try {
+        await api(`/api/library/${trackId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ title: newTitle }),
+        });
+      } catch (e) {
+        t.title = old;
+        showToast('Erreur : ' + e.message, 'error');
+      }
+    },
+    async removeDownload(trackId) {
+      const t = this.findById(trackId);
+      if (!t || !t.file) return;
+      try {
+        await api(`/api/library/${trackId}/download`, { method: 'DELETE' });
+        t.file = null;
+        showToast('Fichier local supprimé');
+      } catch (e) {
+        showToast('Erreur : ' + e.message, 'error');
+      }
+    },
+    async purgeOrphans() {
+      const pls = usePlaylistsStore();
+      const playlistTrackIds = new Set(pls.items.flatMap((pl) => pl.trackIds));
+      const orphans = this.tracks.filter((t) => t.liked === false && !playlistTrackIds.has(t.id));
+      if (orphans.length === 0) return 0;
+      for (const t of orphans) {
+        try {
+          await api(`/api/library/${t.id}`, { method: 'DELETE' });
+          const idx = this.tracks.findIndex((o) => o.id === t.id);
+          if (idx !== -1) this.tracks.splice(idx, 1);
+        } catch {}
+      }
+      return orphans.length;
+    },
     async downloadTrack(trackId) {
       if (this.libraryDownloads.has(trackId)) return;
       const m = new Map(this.libraryDownloads);
@@ -276,6 +317,9 @@ export const useLibraryStore = defineStore('library', {
           this.libraryDownloads = m;
           es.close();
           showToast('Erreur téléchargement : ' + data.error, 'error');
+        }
+        if (typeof data.ytdlpActive === 'number') {
+          this.ytdlpStatus = { active: data.ytdlpActive, queued: data.ytdlpQueued ?? 0 };
         }
       };
       es.onerror = () => es.close();

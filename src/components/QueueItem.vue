@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue';
 import { usePlayerStore } from '@/stores/player';
 import { useQueueDrag } from '@/composables/useDragReorder';
+import { onThumbError, onThumbLoad } from '@/lib/format';
 
 const props = defineProps({
   track: { type: Object, required: true },
@@ -38,7 +39,7 @@ onMounted(() => {
     :data-qidx="qIdx"
     @click="activate"
   >
-    <img class="qi-thumb" :src="track.thumbnail || ''" alt="" loading="lazy" />
+    <img class="qi-thumb" :src="track.thumbnail || ''" alt="" loading="lazy" @error="onThumbError" @load="onThumbLoad" />
     <div class="qi-meta">
       <div class="qi-title">{{ track.title }}</div>
       <div class="qi-sub">{{ track.uploader || '' }}</div>

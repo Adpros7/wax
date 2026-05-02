@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, computed } from 'vue';
+import { onMounted, computed, watch } from 'vue';
 import Sidebar from './components/Sidebar.vue';
 import Player from './components/Player.vue';
 import QueuePanel from './components/QueuePanel.vue';
@@ -29,6 +29,13 @@ const player = usePlayerStore();
 const discover = useDiscoverStore();
 
 const currentView = computed(() => view.name);
+
+let discoverRefreshTimer = null;
+watch(() => library.favorites.length, (newLen, oldLen) => {
+  if (newLen === oldLen) return;
+  clearTimeout(discoverRefreshTimer);
+  discoverRefreshTimer = setTimeout(() => discover.refresh(), 2500);
+});
 
 onMounted(async () => {
   prefs.load();

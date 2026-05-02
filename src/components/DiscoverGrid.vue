@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useDiscoverStore } from '@/stores/discover';
 import { usePlayerStore } from '@/stores/player';
+import { onThumbError, onThumbLoad } from '@/lib/format';
 
 const discover = useDiscoverStore();
 const player = usePlayerStore();
@@ -15,6 +16,15 @@ function isLoading(track) {
 
 function play(track) {
   player.playFromList(track.id, queueIds.value);
+}
+
+function onDragStart(event, track) {
+  event.dataTransfer.setData('wax/track', JSON.stringify({
+    id: track.id,
+    ytId: track.ytId,
+    isStream: true,
+  }));
+  try { event.dataTransfer.setData('text/plain', track.id); } catch {}
 }
 </script>
 
@@ -52,10 +62,12 @@ function play(track) {
         :key="t.id"
         class="discover-card"
         :class="{ 'is-loading': isLoading(t) }"
+        draggable="true"
         @click="play(t)"
+        @dragstart="onDragStart($event, t)"
       >
         <div class="discover-card-cover">
-          <img :src="t.thumbnail" alt="" loading="lazy" />
+          <img :src="t.thumbnail" alt="" loading="lazy" @error="onThumbError" @load="onThumbLoad" />
           <div v-if="isLoading(t)" class="discover-card-spinner" aria-label="Chargement…"></div>
         </div>
         <div class="discover-card-meta">
@@ -64,6 +76,16 @@ function play(track) {
         </div>
       </button>
     </div>
-    <div v-else class="discover-loading">Génération…</div>
+    <div v-else class="discover-grid">
+      <div v-for="i in 12" :key="i" class="discover-card discover-card-skeleton">
+        <div class="discover-card-cover">
+          <div class="skeleton-block" style="width:100%;height:100%;border-radius:4px"></div>
+        </div>
+        <div class="discover-card-meta">
+          <div class="skeleton-block" style="height:13px;width:80%;border-radius:3px;margin-bottom:6px"></div>
+          <div class="skeleton-block" style="height:10px;width:55%;border-radius:3px"></div>
+        </div>
+      </div>
+    </div>
   </section>
 </template>

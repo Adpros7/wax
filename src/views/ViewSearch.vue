@@ -5,7 +5,7 @@ import { useLibraryStore } from '@/stores/library';
 import { useStreamsStore } from '@/stores/streams';
 import { usePlayerStore } from '@/stores/player';
 import { useJobsStore } from '@/stores/jobs';
-import { fmtDuration, isYoutubeUrl } from '@/lib/format';
+import { fmtDuration, isYoutubeUrl, onThumbError, onThumbLoad } from '@/lib/format';
 import { showToast } from '@/lib/toast';
 import JobItem from '@/components/JobItem.vue';
 import TrackRow from '@/components/TrackRow.vue';
@@ -139,7 +139,7 @@ function togglePlaylistTrack(id) { search.togglePlaylistTrack(id); }
           class="preview-card"
           :hidden="!(search.preview && search.preview.title)"
         >
-          <img id="preview-thumb" :src="search.preview?.thumbnail || ''" alt="" />
+          <img id="preview-thumb" :src="search.preview?.thumbnail || ''" alt="" @error="onThumbError" @load="onThumbLoad" />
           <div class="preview-info">
             <div id="preview-title" class="preview-title">{{ search.preview?.title || '' }}</div>
             <div id="preview-author" class="preview-author">{{ search.preview?.author || '' }}</div>
@@ -184,7 +184,7 @@ function togglePlaylistTrack(id) { search.togglePlaylistTrack(id); }
                 :checked="search.playlistSelection.has(t.id)"
                 @click.stop="togglePlaylistTrack(t.id)"
               />
-              <img :src="t.thumbnail" alt="" loading="lazy" />
+              <img :src="t.thumbnail" alt="" loading="lazy" @error="onThumbError" @load="onThumbLoad" />
               <span class="ps-title">{{ t.title }}</span>
               <span class="muted">{{ fmtDuration(t.duration) }}</span>
             </li>
@@ -216,6 +216,18 @@ function togglePlaylistTrack(id) { search.togglePlaylistTrack(id); }
       >
         {{ search.statusMessage }}
       </p>
+
+      <div
+        v-if="search.status === 'done' && searchTracks.length === 0 && search.inputValue"
+        class="empty-state"
+      >
+        <svg viewBox="0 0 48 48" fill="none" class="empty-icon" aria-hidden="true">
+          <circle cx="22" cy="22" r="14" stroke="currentColor" stroke-width="2.5"/>
+          <path d="M32 32l8 8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M18 22h8M22 18v8" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+        </svg>
+        <p>Aucun résultat pour « {{ search.inputValue }} »</p>
+      </div>
 
       <ul
         class="track-list"

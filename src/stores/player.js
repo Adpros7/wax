@@ -76,7 +76,12 @@ export const usePlayerStore = defineStore('player', {
       el.addEventListener('pause', () => this._onAudioPause());
       el.addEventListener('playing', () => { this.loading = false; });
       el.addEventListener('waiting', () => { this.loading = true; });
-      el.addEventListener('error', () => { this.loading = false; });
+      el.addEventListener('error', () => {
+        this.loading = false;
+        const track = findTrack(this.queue[this.index]);
+        showToast(track ? `Impossible de lire « ${track.title} »` : 'Erreur de lecture', 'error');
+        setTimeout(() => { if (this.queue.length > 1) this.next(); }, 3000);
+      });
       el.addEventListener('timeupdate', () => this._onAudioTimeUpdate());
       el.addEventListener('ended', () => this._onAudioEnded());
     },
@@ -176,6 +181,15 @@ export const usePlayerStore = defineStore('player', {
     seekToPct(pct) {
       if (!this.audioEl?.duration) return;
       this.audioEl.currentTime = (pct / 100) * this.audioEl.duration;
+    },
+    addToQueue(trackId) {
+      if (this.queue.includes(trackId)) {
+        showToast('Déjà dans la queue');
+        return;
+      }
+      const insertAt = this.queue.length > 0 ? this.index + 1 : 0;
+      this.queue.splice(insertAt, 0, trackId);
+      showToast('Ajouté à la queue', 'success');
     },
     toggleQueueOpen() { this.queueOpen = !this.queueOpen; },
     closeQueue() { this.queueOpen = false; },

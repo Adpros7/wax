@@ -7,6 +7,9 @@ import { usePlayerStore } from '@/stores/player';
 const viz = reactive({
   ctx: null,
   analyser: null,
+  bass: null,
+  mid: null,
+  treble: null,
   dataArray: null,
   running: false,
   frame: null,
@@ -22,9 +25,22 @@ function init() {
     const source = viz.ctx.createMediaElementSource(player.audioEl);
     viz.analyser = viz.ctx.createAnalyser();
     viz.analyser.fftSize = 64;
-    // Lower smoothing → snappier reactions to transients.
     viz.analyser.smoothingTimeConstant = 0.55;
-    source.connect(viz.analyser);
+    // EQ: bass (lowshelf 100Hz) → mid (peaking 1kHz) → treble (highshelf 3kHz)
+    viz.bass = viz.ctx.createBiquadFilter();
+    viz.bass.type = 'lowshelf';
+    viz.bass.frequency.value = 100;
+    viz.mid = viz.ctx.createBiquadFilter();
+    viz.mid.type = 'peaking';
+    viz.mid.frequency.value = 1000;
+    viz.mid.Q.value = 1;
+    viz.treble = viz.ctx.createBiquadFilter();
+    viz.treble.type = 'highshelf';
+    viz.treble.frequency.value = 3000;
+    source.connect(viz.bass);
+    viz.bass.connect(viz.mid);
+    viz.mid.connect(viz.treble);
+    viz.treble.connect(viz.analyser);
     viz.analyser.connect(viz.ctx.destination);
     viz.dataArray = new Uint8Array(viz.analyser.frequencyBinCount);
   } catch {
@@ -75,6 +91,12 @@ export function stopVisualizer() {
   if (viz.frame) cancelAnimationFrame(viz.frame);
   document.body.classList.remove('viz-running');
   document.querySelectorAll('.eq rect').forEach((r) => (r.style.transform = ''));
+}
+
+export function setEq(bass, mid, treble) {
+  if (viz.bass) viz.bass.gain.value = bass;
+  if (viz.mid) viz.mid.gain.value = mid;
+  if (viz.treble) viz.treble.gain.value = treble;
 }
 
 // Auto-start/stop in lockstep with playing state.

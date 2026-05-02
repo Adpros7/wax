@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { usePlayerStore, fmtDuration } from '@/stores/player';
+import { onThumbError, onThumbLoad } from '@/lib/format';
 import { useLibraryStore } from '@/stores/library';
 import { useStreamsStore } from '@/stores/streams';
 import { usePrefsStore } from '@/stores/prefs';
@@ -95,6 +96,8 @@ watch(
           class="player-thumb"
           :src="player.currentTrack?.thumbnail || ''"
           alt=""
+          @error="onThumbError"
+          @load="onThumbLoad"
         />
         <div v-if="player.loading" class="player-thumb-spinner" aria-label="Chargement…"></div>
       </div>

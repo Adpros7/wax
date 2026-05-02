@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { fmtDuration } from '@/lib/format';
+import { fmtDuration, onThumbError, onThumbLoad } from '@/lib/format';
 import { modalState } from '@/lib/modal';
 
 const props = defineProps({
@@ -82,7 +82,7 @@ bump();
           :checked="selection.has(t.id)"
           @click.stop="toggleTrack(t)"
         />
-        <img :src="t.thumbnail || ''" alt="" loading="lazy" />
+        <img :src="t.thumbnail || ''" alt="" loading="lazy" @error="onThumbError" @load="onThumbLoad" />
         <div class="bulk-track-meta">
           <div class="bulk-track-title">{{ t.title }}</div>
           <div class="bulk-track-sub">{{ t.uploader || '' }}</div>

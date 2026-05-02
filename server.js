@@ -107,7 +107,18 @@ function readJson(file) {
 function writeJson(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
-const getLibrary = () => readJson(LIBRARY_FILE);
+// Upgrade any stored mqdefault/hqdefault thumbnail to maxresdefault.
+// maxresdefault isn't guaranteed for every video, but the client handles
+// the 404 fallback. We never rewrite library.json — upgrade is on-read only.
+function upgradeThumb(url) {
+  if (!url) return url;
+  return url.replace(/\/(mq|hq|sd|)default\.jpg(\?.*)?$/, '/maxresdefault.jpg');
+}
+
+const getLibrary = () => readJson(LIBRARY_FILE).map(t => ({
+  ...t,
+  thumbnail: upgradeThumb(t.thumbnail),
+}));
 const saveLibrary = (lib) => writeJson(LIBRARY_FILE, lib);
 const getPlaylists = () => readJson(PLAYLISTS_FILE);
 const savePlaylists = (pls) => writeJson(PLAYLISTS_FILE, pls);
@@ -158,7 +169,7 @@ app.get('/api/mix/:videoId', (req, res) => {
         uploader: uploader === 'NA' ? '' : (uploader || ''),
         duration: parseFloat(duration) || 0,
         url: `https://www.youtube.com/watch?v=${vid}`,
-        thumbnail: `https://i.ytimg.com/vi/${vid}/mqdefault.jpg`,
+        thumbnail: `https://i.ytimg.com/vi/${vid}/maxresdefault.jpg`,
       };
     });
     res.json({ tracks });
@@ -197,7 +208,7 @@ app.get('/api/info', async (req, res) => {
     res.json({
       title: data.title,
       author: data.author_name,
-      thumbnail: data.thumbnail_url,
+      thumbnail: upgradeThumb(data.thumbnail_url),
       isPlaylist: /[?&]list=/.test(url) && !/[?&]v=/.test(url),
     });
   } catch (e) {
@@ -323,7 +334,7 @@ app.get('/api/trending', (req, res) => {
         uploader: uploader === 'NA' ? '' : (uploader || ''),
         duration: parseFloat(duration) || 0,
         url: `https://www.youtube.com/watch?v=${id}`,
-        thumbnail: `https://i.ytimg.com/vi/${id}/mqdefault.jpg`,
+        thumbnail: `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`,
       };
     });
     res.json({ tracks });
@@ -357,7 +368,7 @@ app.get('/api/search', (req, res) => {
         uploader: uploader === 'NA' ? '' : (uploader || ''),
         duration: parseFloat(duration) || 0,
         url: `https://www.youtube.com/watch?v=${id}`,
-        thumbnail: `https://i.ytimg.com/vi/${id}/mqdefault.jpg`,
+        thumbnail: `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`,
       };
     });
     res.json({ results });
@@ -390,7 +401,7 @@ app.get('/api/playlist-info', (req, res) => {
         uploader: uploader === 'NA' ? '' : (uploader || ''),
         duration: parseFloat(duration) || 0,
         url: `https://www.youtube.com/watch?v=${id}`,
-        thumbnail: `https://i.ytimg.com/vi/${id}/mqdefault.jpg`,
+        thumbnail: `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`,
       };
     });
     res.json({ tracks: items });
@@ -400,7 +411,8 @@ app.get('/api/playlist-info', (req, res) => {
 const jobs = new Map();
 
 function broadcast(job, payload) {
-  const data = `data: ${JSON.stringify(payload)}\n\n`;
+  const enriched = { ...payload, ytdlpActive, ytdlpQueued: ytdlpQueue.length };
+  const data = `data: ${JSON.stringify(enriched)}\n\n`;
   for (const listener of job.listeners) {
     try { listener.write(data); } catch {}
   }
@@ -503,7 +515,7 @@ function startJob(job) {
         title: safeTitle,
         uploader: info.uploader || info.channel || '',
         duration: info.duration || 0,
-        thumbnail: info.thumbnail || (info.id ? `https://i.ytimg.com/vi/${info.id}/mqdefault.jpg` : ''),
+        thumbnail: info.thumbnail || (info.id ? `https://i.ytimg.com/vi/${info.id}/maxresdefault.jpg` : ''),
         ytId: info.id || '',
         url: info.webpage_url || job.url,
         bitrate: job.bitrate,
@@ -590,7 +602,7 @@ app.post('/api/library/add', (req, res) => {
     title: String(title).slice(0, 200),
     uploader: uploader || '',
     duration: parseFloat(duration) || 0,
-    thumbnail: thumbnail || `https://i.ytimg.com/vi/${ytId}/mqdefault.jpg`,
+    thumbnail: thumbnail || `https://i.ytimg.com/vi/${ytId}/maxresdefault.jpg`,
     ytId,
     url: url || `https://www.youtube.com/watch?v=${ytId}`,
     file: null,

@@ -8,16 +8,23 @@
 
 - **Search YouTube directly** in-app — results render as regular track rows (heart, mix, spinner, hover-prefetch all unified with the rest of the app)
 - **Stream by default** — every track plays via `yt-dlp` URL extraction with 5h URL cache, hover prefetch, and "look-ahead one" on queue progression so transitions feel instant
-- **Discover** — landing screen surfaces a YouTube Mix inspired by a random favorite, or the YouTube "Today's Top Hits" playlist when the library is empty
-- **Favoris vs Bibliothèque** — Favoris (heart-toggle) is the visible playlist; tracks added by saving a Mix or referenced by playlists live silently in the library so playlists keep working without polluting your favorites
-- **Download for offline** — per-track button on every row converts a streamed favorite into a local MP3 320 kbps with circular progress ring
+- **Discover** — landing screen surfaces a YouTube Mix inspired by a random favorite, or the YouTube "Today's Top Hits" playlist when the library is empty; auto-refreshes when favorites change
+- **Favoris vs Bibliothèque** — Favoris (heart-toggle) is the visible playlist; tracks added by saving a Mix or referenced by playlists live silently in the library so playlists keep working without polluting your favorites; "Nettoyer" button in Settings purges orphans
+- **Smart playlists** — auto "Récemment ajoutés" and "Les plus écoutés" surfaced in the sidebar
+- **Download for offline** — per-track button converts a streamed favorite into a local MP3 320 kbps with circular progress ring; the ✓ indicator turns into × on hover to remove the local file
 - **Playlists** — create, rename, delete, drag-reorder, bulk-add modal, "Tout télécharger" cascade
+- **Drag-and-drop** — drag any track (search result, Découverte card, library row) onto a sidebar playlist or onto Favoris to add it; duplicates are blocked with a toast
 - **Mix inspired by this track** ("Spotify Radio" equivalent) — generates a 50-track stream queue from YouTube's `RD<videoId>` mix; "Sauvegarder" turns the temporary mix into a permanent playlist *without* downloading the songs (they stay streamable references)
-- **Audio player** with shuffle / repeat / queue panel / crossfade / lyrics (via lyrics.ovh) / OS media controls (MediaSession API)
+- **Audio player** with shuffle / repeat / queue panel / crossfade / lyrics (via lyrics.ovh) / OS media controls (MediaSession API) / "Add to queue" on every row / robust stream-error handling (toast + auto-skip)
+- **3-band equalizer** — bass / mid / treble (±12 dB) via Web Audio BiquadFilters, persisted in prefs
+- **Light & dark themes** — full theme switch from Settings, persisted across sessions
 - **Adaptive accent palette** — extracts the dominant color from the current track's thumbnail; user can override with one of 8 presets
-- **Audio-reactive equalizer** on the currently-playing track row (FFT split into bass / mid / high; sqrt curve for sensitivity)
-- **Loading spinner** on track rows while the audio is buffering — no more "did my click work?" anxiety
-- **Persisted state** — queue, position, shuffle/repeat, volume, accent prefs all restored on reload
+- **Audio-reactive visualizer** on the currently-playing track row (FFT split into bass / mid / high; sqrt curve for sensitivity)
+- **Full-HD covers** — fetches `maxresdefault.jpg` (1280×720) with double fallback (`onerror` + `naturalWidth ≤ 120` placeholder detection) → graceful downgrade to `hqdefault` then `mqdefault`
+- **Loading shimmer + spinners** — shimmer skeleton cards on Découverte / Top, spinners on tracks during buffering — no more "did my click work?" anxiety
+- **In-app rename** — pencil button on every library track opens a prompt modal to retitle (PATCH `/api/library/:id`)
+- **yt-dlp queue indicator** — pulsing badge in the sidebar shows active + queued background downloads
+- **Persisted state** — queue, position, shuffle/repeat, volume, accent prefs, theme, EQ all restored on reload
 
 ## Stack
 
@@ -129,9 +136,10 @@ wax/
 
 - **yt-dlp dependency**: extraction can break overnight when YouTube tweaks their internals. `yt-dlp` updates fix this within hours; tell users to `yt-dlp -U` if they hit issues.
 - **First stream takes ~3 s**: `yt-dlp -g` with the `android` player client (~2.5× faster than the default `web` client). Subsequent calls hit the 5-hour URL cache. Hover prefetch on track rows and player look-ahead (next-track-in-queue) hide most of this from the user.
-- **Concurrent yt-dlp limit = 3**: imposed server-side to prevent CPU saturation. Prefetch storms beyond 3 are queued.
+- **Concurrent yt-dlp limit = 3**: imposed server-side to prevent CPU saturation. Prefetch storms beyond 3 are queued (a sidebar badge surfaces the queue depth).
 - **`@distube/ytdl-core` is NOT used** — we tried it (purely-JS, in-process), it's currently broken on the YouTube formats we need. Stays out until upstream catches up.
 - **Mix uses `watch?v=…&list=RD…` form** — YouTube refused the `playlist?list=RD…` form mid-2026 with "This playlist type is unviewable", so the mix endpoint constructs the watch-page URL instead.
+- **`maxresdefault.jpg` not always available** — for non-HD uploads YouTube either 404s or serves a 120×90 grey placeholder with HTTP 200; the client downgrades automatically to `hqdefault.jpg` (and `mqdefault.jpg` as a final fallback).
 - **No code signing yet**: `.dmg` / `.exe` artifacts trigger Gatekeeper / SmartScreen warnings unless you configure signing in `electron-builder.yml`.
 - **No icons committed**: `build/icon.icns` and `build/icon.ico` need to be added before `dist:*` will succeed.
 - **Single-user, single-machine**: no cloud sync, accounts, or multi-device library.

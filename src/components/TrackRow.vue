@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue';
-import { fmtDuration } from '@/lib/format';
+import { fmtDuration, onThumbError, onThumbLoad } from '@/lib/format';
 import {
   ICON_PLAY,
   ICON_PAUSE,
@@ -11,8 +11,11 @@ import {
   ICON_HEART,
   ICON_HEART_OUTLINE,
   ICON_SPARKLES,
+  ICON_QUEUE_ADD,
+  ICON_EDIT,
   eqHtml,
 } from '@/lib/icons';
+import { promptModal } from '@/lib/modal';
 import { useLibraryStore } from '@/stores/library';
 import { usePlayerStore } from '@/stores/player';
 import { useViewStore } from '@/stores/view';
@@ -67,6 +70,40 @@ function handleDownload(e) {
   lib.downloadTrack(props.track.id);
 }
 
+function handleRemoveDownload(e) {
+  e.stopPropagation();
+  lib.removeDownload(props.track.id);
+}
+
+function handleAddToQueue(e) {
+  e.stopPropagation();
+  player.addToQueue(props.track.id);
+}
+
+async function handleRenameTitle(e) {
+  e.stopPropagation();
+  if (props.track.isStream) return;
+  const newTitle = await promptModal({
+    title: 'Renommer',
+    defaultValue: props.track.title,
+    placeholder: props.track.title,
+    confirmLabel: 'Renommer',
+  });
+  if (newTitle && newTitle !== props.track.title) lib.renameTrack(props.track.id, newTitle);
+}
+
+function handleDragStart(e) {
+  // Don't set effectAllowed here — useDragReorder may also fire and set 'move'.
+  // Let the browser/destination decide. The key data is in wax/track.
+  e.dataTransfer.setData('wax/track', JSON.stringify({
+    id: props.track.id,
+    ytId: props.track.ytId,
+    isStream: !!props.track.isStream,
+  }));
+  // Fallback for useDragReorder compatibility (text/plain = track ID)
+  try { e.dataTransfer.setData('text/plain', props.track.id); } catch {}
+}
+
 function handleRemoveFromPlaylist(e) {
   e.stopPropagation();
   if (props.removeFromPlaylist) props.removeFromPlaylist(props.track.id);
@@ -99,7 +136,9 @@ onMounted(() => {
     class="track"
     :class="{ 'is-playing': isCurrent }"
     :data-id="track.id"
+    draggable="true"
     @dblclick="playThis"
+    @dragstart="handleDragStart"
   >
     <div class="track-num">
       <div v-if="isCurrent && player.loading" class="track-num-spinner" aria-label="Chargement…"></div>
@@ -112,7 +151,7 @@ onMounted(() => {
         v-html="isPlaying ? ICON_PAUSE : ICON_PLAY"
       ></button>
     </div>
-    <img class="track-thumb" :src="track.thumbnail || ''" alt="" loading="lazy" />
+    <img class="track-thumb" :src="track.thumbnail || ''" alt="" loading="lazy" @error="onThumbError" @load="onThumbLoad" />
     <div class="track-meta">
       <div class="track-title">{{ track.title }}</div>
       <div class="track-sub">{{ track.uploader || '' }}</div>
@@ -136,15 +175,19 @@ onMounted(() => {
         />
       </svg>
     </span>
-    <span
+    <button
       v-else-if="track.file"
       class="track-offline-indicator is-done"
-      title="Disponible hors ligne"
+      title="Retirer de l'offline"
+      @click.stop="handleRemoveDownload"
     >
-      <svg viewBox="0 0 24 24" fill="none">
+      <svg class="icon-check" viewBox="0 0 24 24" fill="none">
         <path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
-    </span>
+      <svg class="icon-remove" viewBox="0 0 24 24" fill="none">
+        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+      </svg>
+    </button>
     <span v-else class="track-offline-indicator empty" title="Non téléchargé"></span>
     <span class="track-duration">{{ fmtDuration(track.duration) }}</span>
     <div class="track-actions">
@@ -169,11 +212,24 @@ onMounted(() => {
         v-html="ICON_PLUS"
       ></button>
       <button
+        v-if="!track.isStream"
+        class="icon-btn"
+        title="Renommer"
+        @click.stop="handleRenameTitle"
+        v-html="ICON_EDIT"
+      ></button>
+      <button
         v-if="!track.isStream && !track.file && !offlineRing"
         class="icon-btn offline-btn"
         title="Télécharger pour l'écoute hors ligne"
         @click="handleDownload"
         v-html="ICON_DOWNLOAD"
+      ></button>
+      <button
+        class="icon-btn queue-add-btn"
+        title="Ajouter à la queue"
+        @click="handleAddToQueue"
+        v-html="ICON_QUEUE_ADD"
       ></button>
       <button
         v-if="removeFromPlaylist"

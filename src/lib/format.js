@@ -38,6 +38,24 @@ export function debounce(fn, ms) {
   return wrapped;
 }
 
+// maxresdefault doesn't exist for every video. YouTube sometimes returns a
+// 120×90 grey placeholder with HTTP 200 instead of a 404, so onerror alone
+// isn't enough — onThumbLoad also checks naturalWidth and falls back.
+export function onThumbError(e) {
+  const src = e.target.src || '';
+  if (src.includes('maxresdefault')) e.target.src = src.replace('maxresdefault', 'hqdefault');
+  else if (src.includes('hqdefault')) e.target.src = src.replace('hqdefault', 'mqdefault');
+}
+
+export function onThumbLoad(e) {
+  const img = e.target;
+  const src = img.src || '';
+  // naturalWidth ≤ 120 means YouTube served its generic grey placeholder.
+  if (src.includes('maxresdefault') && img.naturalWidth <= 120) {
+    img.src = src.replace('maxresdefault', 'hqdefault');
+  }
+}
+
 export function gradientFromString(str) {
   let hash = 0;
   for (const c of str || '') hash = c.charCodeAt(0) + ((hash << 5) - hash);
