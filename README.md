@@ -4,6 +4,8 @@
 
 ![placeholder](./public/textlogo.png)
 
+> ⚠️ Wax is a personal client built on [`yt-dlp`](https://github.com/yt-dlp/yt-dlp). It hosts and redistributes nothing — every byte of audio is fetched at runtime by your own machine. Use it for content you own, content under permissive licenses, or content you have permission to download. YouTube's Terms of Service apply; copyright compliance is on you. See the full [Disclaimer](#disclaimer).
+
 ## What it does
 
 - **Search YouTube directly** in-app — results render as regular track rows (heart, mix, spinner, hover-prefetch all unified with the rest of the app)
@@ -147,7 +149,17 @@ wax/
 
 ## License
 
-Personal project. All YouTube interactions are subject to YouTube's Terms of Service — Wax is intended for use with content the user owns or content under permissive licenses (Creative Commons, public domain, etc.). Distribution of copyrighted material is the user's responsibility.
+Wax is released under the [MIT License](./LICENSE). Use it, fork it, modify it, ship it — just keep the copyright notice.
+
+## Disclaimer
+
+Wax is a personal music client built on top of [`yt-dlp`](https://github.com/yt-dlp/yt-dlp). It does not host, redistribute, or transcode any media itself — every byte of audio comes from YouTube's servers, fetched at runtime by the user's own machine via `yt-dlp`.
+
+- **Use Wax for content you own, content under permissive licenses (Creative Commons, public domain), or content you have explicit permission to download.** YouTube's Terms of Service apply to every interaction.
+- **The author makes no claim to YouTube content** and is not affiliated with YouTube, Google, or any rights holder.
+- **Compliance with copyright law in your jurisdiction is your responsibility.** The author and contributors are not liable for misuse.
+
+This project is shared as a technical exercise — a Vue 3 + Electron app wrapping `yt-dlp` — and as a tool for personal use. Any other use is on you.
 
 ---
 
