@@ -8,6 +8,10 @@
 
 > ⚠️ Wax is a personal client built on [`yt-dlp`](https://github.com/yt-dlp/yt-dlp). It hosts and redistributes nothing — every byte of audio is fetched at runtime by your own machine. Use it for content you own, content under permissive licenses, or content you have permission to download. YouTube's Terms of Service apply; copyright compliance is on you. See the full [Disclaimer](#disclaimer).
 
+<p align="center">
+  <img src="./docs/assets/screenshot-discover.png" alt="Wax — Discover view in the Midnight theme" />
+</p>
+
 ## What it does
 
 - **Search YouTube directly** in-app — results render as regular track rows (heart, mix, spinner, hover-prefetch all unified with the rest of the app)
@@ -30,6 +34,27 @@
 - **Bilingual UI** — English / Français picker in Settings; switches on the fly without a reload (every label, toast, modal, hero, theme name)
 - **Tabbed Settings** — General / Theme / Equalizer; the General tab covers crossfade (toggle + duration slider), language, backup, library cleanup
 - **Backup & restore** — one-click export of library + playlists + preferences into a single JSON file, and one-click import (with confirmation) to restore on a fresh install or roll back. Audio MP3s aren't bundled — copy `library/audio/` separately for full offline migration
+
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%"><img src="./docs/assets/screenshot-search.png" alt="Search YouTube in-app" /></td>
+    <td width="50%"><img src="./docs/assets/screenshot-playlist.png" alt="Playlist view" /></td>
+  </tr>
+  <tr>
+    <td><strong>Search YouTube in-app</strong> — type a track or paste a URL, results render as full track rows.</td>
+    <td><strong>Build playlists, drag tracks around</strong> — drag-reorder, bulk-add, download all.</td>
+  </tr>
+  <tr>
+    <td><img src="./docs/assets/screenshot-mix.png" alt="Mix view" /></td>
+    <td><img src="./docs/assets/screenshot-theme.png" alt="Theme picker" /></td>
+  </tr>
+  <tr>
+    <td><strong>Mix radio</strong> — click ✨ on any track to generate a 50-track inspired queue.</td>
+    <td><strong>22 themes</strong> — dark + light, including Dracula, Nord, Tokyo Night, Rose Pine.</td>
+  </tr>
+</table>
 
 ## Stack
 
