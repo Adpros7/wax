@@ -169,4 +169,4 @@ This project is shared as a technical exercise — a Vue 3 + Electron app wrappi
 
 ---
 
-Built with ❤ by Dylan with help from Claude.
+Built with ❤ by dgadacha with help from Claude.
