@@ -590,6 +590,48 @@ app.get('/api/library', (req, res) => {
   res.json({ tracks: getLibrary() });
 });
 
+// -------------------------------------------------------------
+// Backup / restore — full export + import of library + playlists.
+// Audio files (library/audio/*.mp3) are NOT included; the user can
+// copy that folder separately. On import, every track keeps its `file`
+// path: if the corresponding MP3 isn't present, the player falls back
+// to streaming and the user can re-download on demand.
+// -------------------------------------------------------------
+app.get('/api/export', (req, res) => {
+  res.json({
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    library: readJson(LIBRARY_FILE),
+    playlists: getPlaylists(),
+  });
+});
+
+// Import accepts a payload up to 32 MB so very large libraries fit in
+// JSON form. We don't pipe through `app.use(express.json)` because that
+// caps at 1 MB; use a per-route override instead.
+app.post('/api/import', express.json({ limit: '32mb' }), (req, res) => {
+  const { version, library, playlists } = req.body || {};
+  if (version !== 1) return res.status(400).json({ error: 'Unsupported export version' });
+  if (!Array.isArray(library) || !Array.isArray(playlists)) {
+    return res.status(400).json({ error: 'Invalid payload shape' });
+  }
+  // Validate basic shape — every entry must at least have an id + title for
+  // tracks, and id + name + trackIds[] for playlists.
+  for (const t of library) {
+    if (!t || typeof t !== 'object' || !t.id || !t.title) {
+      return res.status(400).json({ error: 'Invalid track entry' });
+    }
+  }
+  for (const p of playlists) {
+    if (!p || typeof p !== 'object' || !p.id || typeof p.name !== 'string' || !Array.isArray(p.trackIds)) {
+      return res.status(400).json({ error: 'Invalid playlist entry' });
+    }
+  }
+  saveLibrary(library);
+  savePlaylists(playlists);
+  res.json({ ok: true, tracks: library.length, playlists: playlists.length });
+});
+
 app.post('/api/library/add', (req, res) => {
   const { ytId, title, uploader, duration, thumbnail, url, liked } = req.body || {};
   if (!ytId || !title) return res.status(400).json({ error: 'ytId + title requis' });

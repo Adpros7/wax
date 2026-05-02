@@ -24,6 +24,9 @@
 - **In-app rename** — pencil button on every library track opens a prompt modal to retitle (PATCH `/api/library/:id`)
 - **yt-dlp queue indicator** — pulsing badge in the sidebar shows active + queued background downloads
 - **Persisted state** — queue, position, shuffle/repeat, volume, theme, EQ all restored on reload
+- **Bilingual UI** — English / Français picker in Settings; switches on the fly without a reload (every label, toast, modal, hero, theme name)
+- **Tabbed Settings** — General / Theme / Equalizer; the General tab covers crossfade (toggle + duration slider), language, backup, library cleanup
+- **Backup & restore** — one-click export of library + playlists + preferences into a single JSON file, and one-click import (with confirmation) to restore on a fresh install or roll back. Audio MP3s aren't bundled — copy `library/audio/` separately for full offline migration
 
 ## Stack
 

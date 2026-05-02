@@ -6,19 +6,21 @@ import { usePlaylistsStore } from '@/stores/playlists';
 import { darkThemes, lightThemes } from '@/lib/themes';
 import { setEq } from '@/composables/useVisualizer';
 import { showToast } from '@/lib/toast';
+import { confirmModal } from '@/lib/modal';
+import { exportToFile, readImportFile, importFromData } from '@/lib/backup';
 import { t, SUPPORTED_LOCALES } from '@/lib/i18n';
 
 const prefs = usePrefsStore();
 const lib = useLibraryStore();
 const pls = usePlaylistsStore();
 
-// Tabs
+// Tabs (General first — covers crossfade, language, data, library cleanup)
 const TABS = [
+  { id: 'general',    labelKey: 'settings.tabs.general' },
   { id: 'appearance', labelKey: 'settings.tabs.appearance' },
   { id: 'equalizer',  labelKey: 'settings.tabs.equalizer' },
-  { id: 'general',    labelKey: 'settings.tabs.general' },
 ];
-const activeTab = ref('appearance');
+const activeTab = ref('general');
 
 // Theme
 function swatchStyle(t) {
@@ -56,6 +58,60 @@ function onCrossfadeToggle(e) {
 function onCrossfadeDuration(e) {
   prefs.crossfadeDuration = parseFloat(e.target.value);
   prefs.save();
+}
+
+// Backup / restore
+const importInput = ref(null);
+const exporting = ref(false);
+const importing = ref(false);
+
+async function doExport() {
+  exporting.value = true;
+  try {
+    const data = await exportToFile();
+    const n = (data.library?.length || 0) + (data.playlists?.length || 0);
+    showToast(t('settings.data.export_done', { tracks: data.library.length, playlists: data.playlists.length }), 'success');
+  } catch (e) {
+    showToast(t('common.error_prefix', e.message), 'error');
+  } finally {
+    exporting.value = false;
+  }
+}
+
+function pickImport() {
+  importInput.value?.click();
+}
+
+async function onImportFile(e) {
+  const file = e.target.files?.[0];
+  e.target.value = ''; // allow re-picking the same file
+  if (!file) return;
+  importing.value = true;
+  try {
+    const data = await readImportFile(file);
+    const ok = await confirmModal({
+      title: t('settings.data.import_confirm.title'),
+      message: t('settings.data.import_confirm.message', {
+        tracks: data.library.length,
+        playlists: data.playlists.length,
+      }),
+      confirmLabel: t('settings.data.import'),
+      danger: true,
+    });
+    if (!ok) return;
+    const result = await importFromData(data);
+    showToast(t('settings.data.import_done', {
+      tracks: result.tracks ?? data.library.length,
+      playlists: result.playlists ?? data.playlists.length,
+    }), 'success');
+    // Reload so every store re-fetches against the freshly written files
+    // and prefs (theme, locale, EQ, …) re-apply from the restored snapshot.
+    setTimeout(() => window.location.reload(), 800);
+  } catch (e) {
+    showToast(t('common.error_prefix', e.message), 'error');
+  } finally {
+    importing.value = false;
+  }
 }
 
 // Orphans
@@ -108,12 +164,12 @@ async function purge() {
           class="theme-card"
           :class="{ active: prefs.themeId === th.id }"
           :style="swatchStyle(th)"
-          :title="th.label"
-          :aria-label="th.label"
+          :title="t(th.labelKey)"
+          :aria-label="t(th.labelKey)"
           @click="prefs.setTheme(th.id)"
         >
           <span class="theme-swatch"></span>
-          <span class="theme-label">{{ th.label }}</span>
+          <span class="theme-label">{{ t(th.labelKey) }}</span>
         </button>
       </div>
       <h5 class="settings-subhead settings-subhead--spaced">{{ t('settings.appearance.light') }}</h5>
@@ -125,12 +181,12 @@ async function purge() {
           class="theme-card"
           :class="{ active: prefs.themeId === th.id }"
           :style="swatchStyle(th)"
-          :title="th.label"
-          :aria-label="th.label"
+          :title="t(th.labelKey)"
+          :aria-label="t(th.labelKey)"
           @click="prefs.setTheme(th.id)"
         >
           <span class="theme-swatch"></span>
-          <span class="theme-label">{{ th.label }}</span>
+          <span class="theme-label">{{ t(th.labelKey) }}</span>
         </button>
       </div>
     </section>
@@ -212,6 +268,37 @@ async function purge() {
         >
           {{ loc.label }}
         </button>
+      </div>
+
+      <!-- Data: export / import -->
+      <div class="settings-section settings-section--top-border">
+        <h4>{{ t('settings.data.title') }}</h4>
+        <p class="settings-help">{{ t('settings.data.help') }}</p>
+        <div class="settings-clean-row" style="margin-top: 8px">
+          <button
+            type="button"
+            class="settings-clean-btn"
+            :disabled="exporting"
+            @click="doExport"
+          >
+            {{ exporting ? t('settings.data.exporting') : t('settings.data.export') }}
+          </button>
+          <button
+            type="button"
+            class="settings-clean-btn"
+            :disabled="importing"
+            @click="pickImport"
+          >
+            {{ importing ? t('settings.data.importing') : t('settings.data.import') }}
+          </button>
+          <input
+            ref="importInput"
+            type="file"
+            accept="application/json,.json"
+            style="display: none"
+            @change="onImportFile"
+          />
+        </div>
       </div>
 
       <!-- Library cleanup -->

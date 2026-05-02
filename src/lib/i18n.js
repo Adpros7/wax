@@ -149,6 +149,30 @@ const messages = {
     'settings.appearance.dark': 'Dark',
     'settings.appearance.light': 'Light',
 
+    // Theme display names (resolved at render time from THEMES[].labelKey)
+    'theme.dark': 'Dark',
+    'theme.ardoise': 'Slate',
+    'theme.midnight': 'Midnight',
+    'theme.vinyle': 'Vinyl',
+    'theme.mocha': 'Mocha',
+    'theme.bordeaux': 'Bordeaux',
+    'theme.forest': 'Forest',
+    'theme.studio': 'Studio',
+    'theme.dracula': 'Dracula',
+    'theme.nord': 'Nord',
+    'theme.tokyo-night': 'Tokyo Night',
+    'theme.rose-pine': 'Rose Pine',
+    'theme.gruvbox': 'Gruvbox',
+    'theme.neon': 'Neon',
+    'theme.paper': 'Paper',
+    'theme.lin': 'Linen',
+    'theme.cream': 'Cream',
+    'theme.sable': 'Sand',
+    'theme.peche': 'Peach',
+    'theme.mint': 'Mint',
+    'theme.glacier': 'Glacier',
+    'theme.lavende': 'Lavender',
+
     // Settings — EQ
     'settings.eq.title': 'Equalizer',
     'settings.eq.help': 'Adjust the audio output in real time (±12 dB).',
@@ -175,6 +199,19 @@ const messages = {
     // Settings — language
     'settings.language.title': 'Language',
     'settings.language.help': 'Restart not required — applies on the fly.',
+
+    // Settings — data export / import
+    'settings.data.title': 'Backup',
+    'settings.data.help': 'Export everything (library, playlists, prefs) into a single JSON file, or restore from a previous backup. Audio files (MP3) aren\'t included — copy library/audio/ separately if you want offline files migrated.',
+    'settings.data.export': 'Export',
+    'settings.data.exporting': 'Exporting…',
+    'settings.data.import': 'Import',
+    'settings.data.importing': 'Importing…',
+    'settings.data.export_done': ({ tracks, playlists }) => `Exported ${tracks} track${tracks === 1 ? '' : 's'} and ${playlists} playlist${playlists === 1 ? '' : 's'}`,
+    'settings.data.import_done': ({ tracks, playlists }) => `Imported ${tracks} track${tracks === 1 ? '' : 's'} and ${playlists} playlist${playlists === 1 ? '' : 's'} — reloading…`,
+    'settings.data.import_confirm.title': 'Replace all your data?',
+    'settings.data.import_confirm.message': ({ tracks, playlists }) =>
+      `This will overwrite your library and playlists with ${tracks} track${tracks === 1 ? '' : 's'} and ${playlists} playlist${playlists === 1 ? '' : 's'} from the backup. The app will reload.`,
 
     // Modal labels
     'modal.add_to_playlist': 'Add to a playlist',
@@ -386,6 +423,30 @@ const messages = {
     'settings.appearance.dark': 'Sombres',
     'settings.appearance.light': 'Clairs',
 
+    // Theme display names (resolved at render time from THEMES[].labelKey)
+    'theme.dark': 'Sombre',
+    'theme.ardoise': 'Ardoise',
+    'theme.midnight': 'Minuit',
+    'theme.vinyle': 'Vinyle',
+    'theme.mocha': 'Moka',
+    'theme.bordeaux': 'Bordeaux',
+    'theme.forest': 'Forêt',
+    'theme.studio': 'Studio',
+    'theme.dracula': 'Dracula',
+    'theme.nord': 'Nord',
+    'theme.tokyo-night': 'Tokyo Night',
+    'theme.rose-pine': 'Rose Pine',
+    'theme.gruvbox': 'Gruvbox',
+    'theme.neon': 'Néon',
+    'theme.paper': 'Papier',
+    'theme.lin': 'Lin',
+    'theme.cream': 'Crème',
+    'theme.sable': 'Sable',
+    'theme.peche': 'Pêche',
+    'theme.mint': 'Menthe',
+    'theme.glacier': 'Glacier',
+    'theme.lavende': 'Lavande',
+
     // Settings — EQ
     'settings.eq.title': 'Égaliseur',
     'settings.eq.help': 'Ajuste le rendu audio en temps réel (±12 dB).',
@@ -412,6 +473,19 @@ const messages = {
     // Settings — language
     'settings.language.title': 'Langue',
     'settings.language.help': "Pas besoin de redémarrer — appliqué à la volée.",
+
+    // Settings — data export / import
+    'settings.data.title': 'Sauvegarde',
+    'settings.data.help': "Exporte tout (bibliothèque, playlists, préférences) dans un seul fichier JSON, ou restaure depuis une sauvegarde précédente. Les fichiers audio (MP3) ne sont pas inclus — copie library/audio/ séparément si tu veux migrer les fichiers hors ligne.",
+    'settings.data.export': 'Exporter',
+    'settings.data.exporting': 'Export…',
+    'settings.data.import': 'Importer',
+    'settings.data.importing': 'Import…',
+    'settings.data.export_done': ({ tracks, playlists }) => `${tracks} piste${tracks > 1 ? 's' : ''} et ${playlists} playlist${playlists > 1 ? 's' : ''} exportées`,
+    'settings.data.import_done': ({ tracks, playlists }) => `${tracks} piste${tracks > 1 ? 's' : ''} et ${playlists} playlist${playlists > 1 ? 's' : ''} importées — rechargement…`,
+    'settings.data.import_confirm.title': 'Remplacer toutes tes données ?',
+    'settings.data.import_confirm.message': ({ tracks, playlists }) =>
+      `Cela écrasera ta bibliothèque et tes playlists avec ${tracks} piste${tracks > 1 ? 's' : ''} et ${playlists} playlist${playlists > 1 ? 's' : ''} venant de la sauvegarde. L'app rechargera.`,
 
     // Modal labels
     'modal.add_to_playlist': 'Ajouter à une playlist',
