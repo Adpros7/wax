@@ -97,12 +97,20 @@ function applyHsl(hsl) {
   const h = hsl.h;
   const s = Math.max(hsl.s, 55);
   const root = document.documentElement.style;
+  const isLight = document.documentElement.classList.contains('light');
   root.setProperty('--accent', `hsl(${h}, ${s}%, 60%)`);
   root.setProperty('--accent-bright', `hsl(${h}, ${Math.min(s + 8, 85)}%, 70%)`);
   root.setProperty('--accent-dark', `hsl(${h}, ${s}%, 38%)`);
   root.setProperty('--accent-soft', `hsla(${h}, ${s}%, 60%, 0.18)`);
-  root.setProperty('--accent-bg', `hsl(${h}, ${Math.min(s, 55)}%, 22%)`);
-  root.setProperty('--accent-glow', `hsla(${h}, ${s}%, 60%, 0.4)`);
+  // Hero band: dark themes want a deep saturated band fading into near-black;
+  // light themes want a pastel band fading into the warm/cool surface.
+  if (isLight) {
+    root.setProperty('--accent-bg', `hsl(${h}, ${Math.min(s, 38)}%, 86%)`);
+    root.setProperty('--accent-glow', `hsla(${h}, ${s}%, 55%, 0.18)`);
+  } else {
+    root.setProperty('--accent-bg', `hsl(${h}, ${Math.min(s, 55)}%, 22%)`);
+    root.setProperty('--accent-glow', `hsla(${h}, ${s}%, 60%, 0.4)`);
+  }
 }
 
 export const useAccentStore = defineStore('accent', {

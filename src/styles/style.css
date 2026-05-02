@@ -42,34 +42,429 @@
   --t-accent: background-color 0.8s ease, color 0.4s ease, fill 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease;
 }
 
+/* ===========================================================================
+   Theme palettes
+   ---------------------------------------------------------------------------
+   The :root block above is the default (theme-dark). Each `html.theme-<id>`
+   block below overrides only the surface/text tokens that differ. Surface
+   tints, modal/pill backgrounds, on-accent, page-body-shade, logo-filter
+   are flipped once for the whole "light" family via the shared `html.light`
+   block — every light theme adds both `theme-<id>` AND `light` classes.
+   =========================================================================== */
+
+/* — Dark family — */
+
+html.theme-midnight {
+  --bg: #050613;
+  --main: #0b0d1c;
+  --card: #161a2e;
+  --card-hover: #232845;
+  --elev: #1c2138;
+  --text: #f0f1f8;
+  --text-soft: #a6abc8;
+  --text-muted: #6a7090;
+  --border: rgba(180, 190, 230, 0.12);
+  --border-soft: rgba(180, 190, 230, 0.07);
+}
+
+html.theme-mocha {
+  --bg: #0f0a07;
+  --main: #1a130f;
+  --card: #271d18;
+  --card-hover: #3a2c24;
+  --elev: #2e221c;
+  --text: #f3ebde;
+  --text-soft: #b8a896;
+  --text-muted: #7a6c5d;
+  --border: rgba(230, 200, 165, 0.12);
+  --border-soft: rgba(230, 200, 165, 0.06);
+}
+
+/* — Light family (shared tokens) — */
+
 html.light {
-  --bg: #f0f0f5;
-  --main: #f7f7fa;
-  --card: #ffffff;
-  --card-hover: #e8e8ef;
-  --elev: #ececf2;
-  --text: #111111;
-  --text-soft: #55556a;
-  --text-muted: #8080a0;
   --on-accent: #ffffff;
-  --border: rgba(0, 0, 0, 0.1);
-  --border-soft: rgba(0, 0, 0, 0.05);
   --surface-1: rgba(0, 0, 0, 0.035);
   --surface-2: rgba(0, 0, 0, 0.06);
   --surface-3: rgba(0, 0, 0, 0.09);
   --surface-4: rgba(0, 0, 0, 0.12);
-  --modal-bg: #ffffff;
-  --modal-input: #f0f0f5;
-  --modal-input-focus: #e6e6ee;
-  --pill-bg: #ececf2;
-  --pill-bg-focus: #e0e0e8;
   /* No dark fade under the hero in light mode — would create an ugly band. */
   --page-body-shade: transparent;
   /* The textlogo PNG is white-on-transparent; invert it for light mode. */
   --logo-filter: invert(1) hue-rotate(180deg);
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.18);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.14);
+}
+
+/* Crème — soft warm cream/sépia. The default light theme: low-glare,
+   easy on the eyes for long sessions. */
+html.theme-cream {
+  --bg: #ece5d4;
+  --main: #f3eee0;
+  --card: #fbf6e9;
+  --card-hover: #ebe5d3;
+  --elev: #e6e0cf;
+  --text: #2b2620;
+  --text-soft: #6b6452;
+  --text-muted: #968d77;
+  --border: rgba(80, 60, 30, 0.12);
+  --border-soft: rgba(80, 60, 30, 0.06);
+  --modal-bg: #fbf6e9;
+  --modal-input: #ece5d4;
+  --modal-input-focus: #e2dac6;
+  --pill-bg: #e8e1cf;
+  --pill-bg-focus: #ddd5c0;
+}
+
+/* Papier — neutral off-white, slightly warmer than crisp white. */
+html.theme-paper {
+  --bg: #e8e4dc;
+  --main: #efece4;
+  --card: #f7f5ef;
+  --card-hover: #e2dfd6;
+  --elev: #ddd9d0;
+  --text: #1f1d18;
+  --text-soft: #5a554c;
+  --text-muted: #8e887e;
+  --border: rgba(40, 30, 10, 0.1);
+  --border-soft: rgba(40, 30, 10, 0.05);
+  --modal-bg: #f7f5ef;
+  --modal-input: #e8e4dc;
+  --modal-input-focus: #ddd9d0;
+  --pill-bg: #e3dfd5;
+  --pill-bg-focus: #d8d4ca;
+}
+
+/* Menthe — cool fresh light tinted slightly green. */
+html.theme-mint {
+  --bg: #dde9e2;
+  --main: #e8f0eb;
+  --card: #f3f8f5;
+  --card-hover: #ddebe3;
+  --elev: #d4e2d8;
+  --text: #142019;
+  --text-soft: #4d5e54;
+  --text-muted: #7e9088;
+  --border: rgba(20, 70, 50, 0.1);
+  --border-soft: rgba(20, 70, 50, 0.05);
+  --modal-bg: #f3f8f5;
+  --modal-input: #dfe8e3;
+  --modal-input-focus: #d4dfd9;
+  --pill-bg: #dbe6df;
+  --pill-bg-focus: #cfded6;
+}
+
+/* ===========================================================================
+   Extra themes
+   =========================================================================== */
+
+/* — Dark family extras — */
+
+/* Vinyle — pure AMOLED black with warm-toned text. */
+html.theme-vinyle {
+  --bg: #000000;
+  --main: #050505;
+  --card: #0f0f10;
+  --card-hover: #1a1a1c;
+  --elev: #131315;
+  --text: #f5f0e8;
+  --text-soft: #9a9590;
+  --text-muted: #5a5852;
+  --border: rgba(255, 245, 230, 0.08);
+  --border-soft: rgba(255, 245, 230, 0.04);
+  --modal-bg: #1a1a1c;
+  --modal-input: #2a2a2c;
+  --modal-input-focus: #353537;
+  --pill-bg: #1a1a1c;
+  --pill-bg-focus: #2a2a2c;
+}
+
+/* Ardoise — cool charcoal slate, sober and pro. */
+html.theme-ardoise {
+  --bg: #0f1115;
+  --main: #15181f;
+  --card: #1f2330;
+  --card-hover: #2a2f3f;
+  --elev: #252a38;
+  --text: #e8eaf0;
+  --text-soft: #a5acbb;
+  --text-muted: #6b7185;
+  --border: rgba(180, 195, 220, 0.1);
+  --border-soft: rgba(180, 195, 220, 0.05);
+  --modal-bg: #1f2330;
+  --modal-input: #2a2f3f;
+  --modal-input-focus: #353c50;
+  --pill-bg: #1f2330;
+  --pill-bg-focus: #2a2f3f;
+}
+
+/* Forêt — deep evergreen / mossy dark. */
+html.theme-forest {
+  --bg: #060a07;
+  --main: #0d130e;
+  --card: #182118;
+  --card-hover: #243024;
+  --elev: #1c2a1c;
+  --text: #ecf0e6;
+  --text-soft: #98a59a;
+  --text-muted: #5d6b5e;
+  --border: rgba(180, 220, 180, 0.1);
+  --border-soft: rgba(180, 220, 180, 0.05);
+  --modal-bg: #182118;
+  --modal-input: #243024;
+  --modal-input-focus: #2e3c2e;
+  --pill-bg: #182118;
+  --pill-bg-focus: #243024;
+}
+
+/* Bordeaux — wine / aubergine warm dark. */
+html.theme-bordeaux {
+  --bg: #0d0608;
+  --main: #16090d;
+  --card: #2a1219;
+  --card-hover: #3d1a23;
+  --elev: #341520;
+  --text: #f5e8eb;
+  --text-soft: #b59ba1;
+  --text-muted: #7a626a;
+  --border: rgba(220, 180, 195, 0.1);
+  --border-soft: rgba(220, 180, 195, 0.05);
+  --modal-bg: #2a1219;
+  --modal-input: #3d1a23;
+  --modal-input-focus: #4a2230;
+  --pill-bg: #2a1219;
+  --pill-bg-focus: #3d1a23;
+}
+
+/* Néon — synthwave-leaning black with a violet undertone. */
+html.theme-neon {
+  --bg: #050008;
+  --main: #0a0510;
+  --card: #14081e;
+  --card-hover: #1f0e2d;
+  --elev: #1a0a25;
+  --text: #f0e8ff;
+  --text-soft: #b0a5cc;
+  --text-muted: #6d6488;
+  --border: rgba(200, 180, 255, 0.12);
+  --border-soft: rgba(200, 180, 255, 0.06);
+  --modal-bg: #14081e;
+  --modal-input: #1f0e2d;
+  --modal-input-focus: #2a1340;
+  --pill-bg: #14081e;
+  --pill-bg-focus: #1f0e2d;
+}
+
+/* Studio — matte black gear with a warm orange bias. */
+html.theme-studio {
+  --bg: #0a0908;
+  --main: #131210;
+  --card: #1d1c19;
+  --card-hover: #2a2924;
+  --elev: #232220;
+  --text: #e8e6e0;
+  --text-soft: #a39e94;
+  --text-muted: #6a665e;
+  --border: rgba(220, 200, 170, 0.1);
+  --border-soft: rgba(220, 200, 170, 0.05);
+  --modal-bg: #1d1c19;
+  --modal-input: #2a2924;
+  --modal-input-focus: #353330;
+  --pill-bg: #1d1c19;
+  --pill-bg-focus: #2a2924;
+}
+
+/* Dracula — the canonical Dracula palette. */
+html.theme-dracula {
+  --bg: #1f2029;
+  --main: #282a36;
+  --card: #383a48;
+  --card-hover: #44475a;
+  --elev: #3d3f4d;
+  --text: #f8f8f2;
+  --text-soft: #b8b9c4;
+  --text-muted: #6272a4;
+  --border: rgba(248, 248, 242, 0.08);
+  --border-soft: rgba(248, 248, 242, 0.04);
+  --modal-bg: #383a48;
+  --modal-input: #44475a;
+  --modal-input-focus: #525468;
+  --pill-bg: #383a48;
+  --pill-bg-focus: #44475a;
+}
+
+/* Nord — Polar Night base, Snow Storm text, Frost-friendly. */
+html.theme-nord {
+  --bg: #2e3440;
+  --main: #3b4252;
+  --card: #434c5e;
+  --card-hover: #4c566a;
+  --elev: #495168;
+  --text: #eceff4;
+  --text-soft: #d8dee9;
+  --text-muted: #8a93a3;
+  --border: rgba(216, 222, 233, 0.12);
+  --border-soft: rgba(216, 222, 233, 0.06);
+  --modal-bg: #434c5e;
+  --modal-input: #4c566a;
+  --modal-input-focus: #586275;
+  --pill-bg: #434c5e;
+  --pill-bg-focus: #4c566a;
+}
+
+/* Tokyo Night — deep blue Tokyo. */
+html.theme-tokyo-night {
+  --bg: #16161e;
+  --main: #1a1b26;
+  --card: #24283b;
+  --card-hover: #2f334d;
+  --elev: #2a2e44;
+  --text: #c0caf5;
+  --text-soft: #9aa5ce;
+  --text-muted: #565f89;
+  --border: rgba(192, 202, 245, 0.1);
+  --border-soft: rgba(192, 202, 245, 0.05);
+  --modal-bg: #24283b;
+  --modal-input: #2f334d;
+  --modal-input-focus: #383d5c;
+  --pill-bg: #24283b;
+  --pill-bg-focus: #2f334d;
+}
+
+/* Rose Pine — Rose Pine Main (the dark variant). */
+html.theme-rose-pine {
+  --bg: #191724;
+  --main: #1f1d2e;
+  --card: #26233a;
+  --card-hover: #393552;
+  --elev: #302d44;
+  --text: #e0def4;
+  --text-soft: #908caa;
+  --text-muted: #6e6a86;
+  --border: rgba(196, 167, 231, 0.12);
+  --border-soft: rgba(196, 167, 231, 0.06);
+  --modal-bg: #26233a;
+  --modal-input: #393552;
+  --modal-input-focus: #44406b;
+  --pill-bg: #26233a;
+  --pill-bg-focus: #393552;
+}
+
+/* Gruvbox — retro warm dark, the medium contrast variant. */
+html.theme-gruvbox {
+  --bg: #1d2021;
+  --main: #282828;
+  --card: #3c3836;
+  --card-hover: #504945;
+  --elev: #4a423f;
+  --text: #ebdbb2;
+  --text-soft: #bdae93;
+  --text-muted: #928374;
+  --border: rgba(235, 219, 178, 0.08);
+  --border-soft: rgba(235, 219, 178, 0.04);
+  --modal-bg: #3c3836;
+  --modal-input: #504945;
+  --modal-input-focus: #5d5550;
+  --pill-bg: #3c3836;
+  --pill-bg-focus: #504945;
+}
+
+/* — Light family extras — */
+
+/* Lin — natural linen, very neutral warm. */
+html.theme-lin {
+  --bg: #ece5d6;
+  --main: #f1ece0;
+  --card: #f7f3e8;
+  --card-hover: #e5deca;
+  --elev: #ddd5bf;
+  --text: #1f1c12;
+  --text-soft: #585341;
+  --text-muted: #8b836d;
+  --border: rgba(80, 60, 20, 0.1);
+  --border-soft: rgba(80, 60, 20, 0.05);
+  --modal-bg: #f7f3e8;
+  --modal-input: #ece5d6;
+  --modal-input-focus: #ddd5bf;
+  --pill-bg: #e5deca;
+  --pill-bg-focus: #d8d0bb;
+}
+
+/* Sable — warm sand, more saturated than Crème. */
+html.theme-sable {
+  --bg: #e8d9c4;
+  --main: #ede0cd;
+  --card: #f5e9d8;
+  --card-hover: #ddcdb4;
+  --elev: #d8c5a8;
+  --text: #2a1d0e;
+  --text-soft: #6e553a;
+  --text-muted: #9a8364;
+  --border: rgba(120, 80, 20, 0.12);
+  --border-soft: rgba(120, 80, 20, 0.06);
+  --modal-bg: #f5e9d8;
+  --modal-input: #e8d9c4;
+  --modal-input-focus: #d8c5a8;
+  --pill-bg: #ddcdb4;
+  --pill-bg-focus: #d0bea0;
+}
+
+/* Pêche — peachy blush, even warmer than Crème. */
+html.theme-peche {
+  --bg: #f1e2d6;
+  --main: #f7e9de;
+  --card: #fcf2e8;
+  --card-hover: #ecddd0;
+  --elev: #e8d5c4;
+  --text: #2c1d12;
+  --text-soft: #74584a;
+  --text-muted: #a18671;
+  --border: rgba(120, 70, 30, 0.1);
+  --border-soft: rgba(120, 70, 30, 0.05);
+  --modal-bg: #fcf2e8;
+  --modal-input: #f1e2d6;
+  --modal-input-focus: #e8d5c4;
+  --pill-bg: #ecddd0;
+  --pill-bg-focus: #e2d2c2;
+}
+
+/* Glacier — icy cool blue. */
+html.theme-glacier {
+  --bg: #dde6ee;
+  --main: #e8eef4;
+  --card: #f3f6fa;
+  --card-hover: #d8e2eb;
+  --elev: #d0dbe5;
+  --text: #0e1822;
+  --text-soft: #4d5e72;
+  --text-muted: #7e8fa0;
+  --border: rgba(20, 60, 100, 0.1);
+  --border-soft: rgba(20, 60, 100, 0.05);
+  --modal-bg: #f3f6fa;
+  --modal-input: #dde6ee;
+  --modal-input-focus: #d0dbe5;
+  --pill-bg: #d8e2eb;
+  --pill-bg-focus: #ccd7e1;
+}
+
+/* Lavande — soft lavender pink. */
+html.theme-lavende {
+  --bg: #ebe5f0;
+  --main: #f1ecf4;
+  --card: #f9f5fc;
+  --card-hover: #e6dff0;
+  --elev: #e0d8ec;
+  --text: #2a1f30;
+  --text-soft: #6e5d75;
+  --text-muted: #998aa1;
+  --border: rgba(80, 50, 100, 0.1);
+  --border-soft: rgba(80, 50, 100, 0.05);
+  --modal-bg: #f9f5fc;
+  --modal-input: #ebe5f0;
+  --modal-input-focus: #e0d8ec;
+  --pill-bg: #e8e0ed;
+  --pill-bg-focus: #ddd2e6;
 }
 
 html.light ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); }
@@ -1582,6 +1977,7 @@ input[type="range"]:hover::-moz-range-track {
   margin-bottom: 8px;
 }
 .settings-subhead { margin-top: 20px; margin-bottom: 12px; }
+.settings-subhead--spaced { margin-top: 24px; }
 .settings-help {
   color: var(--text-soft);
   font-size: 0.85rem;
@@ -1631,6 +2027,66 @@ input[type="range"]:hover::-moz-range-track {
 .color-swatch.active {
   border-color: var(--text);
   box-shadow: 0 0 0 3px var(--surface-3);
+}
+
+/* Theme picker */
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+.theme-card {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 8px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text-soft);
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+.theme-card:hover {
+  color: var(--text);
+  border-color: var(--text-muted);
+  transform: translateY(-1px);
+}
+.theme-card.active {
+  border-color: var(--accent);
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.theme-swatch {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1.6;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, var(--swatch-bg) 0%, var(--swatch-bg) 50%, var(--swatch-card) 50%, var(--swatch-card) 100%);
+  border: 1px solid var(--border-soft);
+}
+.theme-swatch::after {
+  content: '';
+  position: absolute;
+  right: 14%;
+  bottom: 18%;
+  width: 28%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--swatch-accent);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.18);
+}
+.theme-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0.01em;
 }
 
 /* EQ sliders */

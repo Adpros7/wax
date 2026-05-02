@@ -17,7 +17,7 @@
 - **Mix inspired by this track** ("Spotify Radio" equivalent) — generates a 50-track stream queue from YouTube's `RD<videoId>` mix; "Sauvegarder" turns the temporary mix into a permanent playlist *without* downloading the songs (they stay streamable references)
 - **Audio player** with shuffle / repeat / queue panel / crossfade / lyrics (via lyrics.ovh) / OS media controls (MediaSession API) / "Add to queue" on every row / robust stream-error handling (toast + auto-skip)
 - **3-band equalizer** — bass / mid / treble (±12 dB) via Web Audio BiquadFilters, persisted in prefs
-- **Light & dark themes** — full theme switch from Settings, persisted across sessions
+- **Themes** — 22 presets in Settings, grouped by family. **14 sombres** (Sombre, Ardoise, Minuit, Vinyle, Moka, Bordeaux, Forêt, Studio, Dracula, Nord, Tokyo Night, Rose Pine, Gruvbox, Néon) and **8 clairs** (Papier, Lin, Crème, Sable, Pêche, Menthe, Glacier, Lavande). Crème is the default light: soft warm cream, low-glare for long sessions. Each theme drives its own modal/pill backgrounds so the app stays cohesive end-to-end. All persist across sessions.
 - **Adaptive accent palette** — extracts the dominant color from the current track's thumbnail; user can override with one of 8 presets
 - **Audio-reactive visualizer** on the currently-playing track row (FFT split into bass / mid / high; sqrt curve for sensitivity)
 - **Full-HD covers** — fetches `maxresdefault.jpg` (1280×720) with double fallback (`onerror` + `naturalWidth ≤ 120` placeholder detection) → graceful downgrade to `hqdefault` then `mqdefault`

@@ -4,6 +4,7 @@ import { ACCENT_PRESETS, useAccentStore } from '@/stores/accent';
 import { usePrefsStore } from '@/stores/prefs';
 import { useLibraryStore } from '@/stores/library';
 import { usePlaylistsStore } from '@/stores/playlists';
+import { darkThemes, lightThemes } from '@/lib/themes';
 import { setEq } from '@/composables/useVisualizer';
 import { showToast } from '@/lib/toast';
 
@@ -11,6 +12,17 @@ const prefs = usePrefsStore();
 const accent = useAccentStore();
 const lib = useLibraryStore();
 const pls = usePlaylistsStore();
+
+function swatchStyle(t) {
+  return {
+    '--swatch-bg': t.swatch[0],
+    '--swatch-card': t.swatch[1],
+    '--swatch-accent': t.swatch[2],
+  };
+}
+
+const themesDark = darkThemes();
+const themesLight = lightThemes();
 
 function setMode(mode) {
   prefs.accentMode = mode;
@@ -71,13 +83,40 @@ async function purge() {
     <!-- Thème -->
     <div class="settings-section">
       <h4>Apparence</h4>
+      <p class="settings-help">Sélectionne un thème — sombre ou clair, doux ou contrasté.</p>
     </div>
-    <div class="settings-mode-row">
-      <button type="button" class="settings-mode" :class="{ active: prefs.theme === 'dark' }" @click="prefs.setTheme('dark')">
-        Sombre
+    <h5 class="settings-subhead">Sombres</h5>
+    <div class="theme-grid">
+      <button
+        v-for="t in themesDark"
+        :key="t.id"
+        type="button"
+        class="theme-card"
+        :class="{ active: prefs.themeId === t.id }"
+        :style="swatchStyle(t)"
+        :title="t.label"
+        :aria-label="t.label"
+        @click="prefs.setTheme(t.id)"
+      >
+        <span class="theme-swatch"></span>
+        <span class="theme-label">{{ t.label }}</span>
       </button>
-      <button type="button" class="settings-mode" :class="{ active: prefs.theme === 'light' }" @click="prefs.setTheme('light')">
-        Clair
+    </div>
+    <h5 class="settings-subhead settings-subhead--spaced">Clairs</h5>
+    <div class="theme-grid">
+      <button
+        v-for="t in themesLight"
+        :key="t.id"
+        type="button"
+        class="theme-card"
+        :class="{ active: prefs.themeId === t.id }"
+        :style="swatchStyle(t)"
+        :title="t.label"
+        :aria-label="t.label"
+        @click="prefs.setTheme(t.id)"
+      >
+        <span class="theme-swatch"></span>
+        <span class="theme-label">{{ t.label }}</span>
       </button>
     </div>
 

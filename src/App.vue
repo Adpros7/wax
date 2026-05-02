@@ -18,6 +18,7 @@ import { usePlaylistsStore } from './stores/playlists';
 import { useViewStore } from './stores/view';
 import { usePlayerStore } from './stores/player';
 import { useDiscoverStore } from './stores/discover';
+import { useStreamsStore } from './stores/streams';
 import { closeModal, modalState } from './lib/modal';
 
 const prefs = usePrefsStore();
@@ -27,6 +28,7 @@ const playlists = usePlaylistsStore();
 const view = useViewStore();
 const player = usePlayerStore();
 const discover = useDiscoverStore();
+const streams = useStreamsStore();
 
 const currentView = computed(() => view.name);
 
@@ -40,6 +42,20 @@ watch(() => library.favorites.length, (newLen, oldLen) => {
 onMounted(async () => {
   prefs.load();
   accent.applyUserAccent();
+
+  // The accent's hero band depends on the current theme kind (dark vs light
+  // pastel). prefs.setTheme dispatches wax:theme-changed; re-derive the
+  // accent so --accent-bg stays consistent. If a track is currently playing
+  // and the user is in auto mode, re-extract the cover color so the hero
+  // band keeps matching the artwork after the theme switch.
+  window.addEventListener('wax:theme-changed', () => {
+    accent.applyUserAccent();
+    if (prefs.accentMode === 'auto') {
+      const id = player.queue[player.index];
+      const t = id ? (library.findById(id) || streams.get(id)) : null;
+      if (t?.thumbnail) accent.adaptToTrack(t);
+    }
+  });
 
   // Player MediaSession (after audio elements are bound from Player.vue)
   // queued for next tick so Player has had a chance to mount.
