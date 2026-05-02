@@ -44,6 +44,8 @@ const messages = {
     'nav.settings': 'Settings',
     'nav.your_library': 'Your library',
     'nav.new_playlist': 'New playlist',
+    'support.label': 'Buy me a coffee',
+    'support.tooltip': "If Wax saves you time, support the project — pure gratitude tip, no feature is gated.",
 
     // Library / smart
     'library.favorites': 'Favorites',
@@ -321,6 +323,8 @@ const messages = {
     'nav.settings': 'Paramètres',
     'nav.your_library': 'Ta bibliothèque',
     'nav.new_playlist': 'Nouvelle playlist',
+    'support.label': 'Offrir un café',
+    'support.tooltip': "Si Wax te fait gagner du temps, soutiens le projet — pur don de gratitude, aucune feature n'est verrouillée derrière.",
 
     // Library / smart
     'library.favorites': 'Favoris',

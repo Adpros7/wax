@@ -558,6 +558,38 @@ a { color: inherit; text-decoration: none; }
   padding-top: 8px;
 }
 
+/* Buy Me a Coffee link sitting at the bottom of the sidebar. Sober by
+   default, BMC's signature yellow on hover so it's recognizable but not
+   shouty during normal use. */
+.sidebar-support {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 4px 4px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border-soft);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.18s ease;
+  -webkit-app-region: no-drag;
+}
+.sidebar-support svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.sidebar-support:hover {
+  background: #FFDD00;
+  color: #1a1a1a;
+  border-color: #FFDD00;
+  transform: translateY(-1px);
+}
+
 .brand {
   display: flex;
   align-items: flex-start;
