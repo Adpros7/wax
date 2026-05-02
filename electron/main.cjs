@@ -13,6 +13,15 @@ const fs = require('node:fs');
 const http = require('node:http');
 const { fork } = require('node:child_process');
 
+// Linux + Wayland: Electron's default GPU/Wayland combo crashes with
+// `gbm_pixmap_wayland` / "Buffer Handle is null" errors on many Mesa
+// drivers. Falling back to X11 via XWayland is the most reliable fix
+// across Ubuntu / Fedora / Arch + GNOME / KDE / Hyprland setups. Users
+// can override by setting ELECTRON_OZONE_PLATFORM_HINT before launch.
+if (process.platform === 'linux' && !process.env.ELECTRON_OZONE_PLATFORM_HINT) {
+  app.commandLine.appendSwitch('ozone-platform-hint', 'x11');
+}
+
 const isDev = process.env.NODE_ENV === 'development' || !!process.env.VITE_DEV_SERVER_URL;
 const SERVER_PORT = process.env.WAX_SERVER_PORT || '3000';
 const VITE_URL = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173';

@@ -1224,14 +1224,27 @@ input:focus, input:focus-visible { outline: none; }
 .skel-duration { height: 12px; width: 36px; }
 .skel-actions { height: 28px; width: 144px; border-radius: 14px; }
 
-/* Persistent offline indicator (always visible — sits between meta and duration). */
+/* Persistent offline indicator (always visible — sits between meta and
+   duration). Three variants render this slot: a <button> when the track is
+   downloaded, <span>s for empty placeholder / in-progress ring. We reset
+   native <button> chrome (padding, border, background) so all three variants
+   occupy the exact same 18×18 box and the duration column lines up no matter
+   the track state. */
 .track-offline-indicator {
   width: 18px;
   height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  box-sizing: border-box;
 }
+button.track-offline-indicator { cursor: pointer; }
 .track-offline-indicator svg { width: 16px; height: 16px; }
 .track-offline-indicator.empty { /* invisible placeholder to keep grid alignment */ }
 .track-offline-indicator.is-done { color: var(--accent-bright); }
@@ -1327,10 +1340,14 @@ input:focus, input:focus-visible { outline: none; }
   gap: 4px;
   opacity: 0;
   transition: opacity 0.15s ease;
-  /* Reserve fixed slot so the duration column doesn't shift between rows
-     that have 3 vs 4 buttons (e.g. downloaded vs not-yet-downloaded). */
+  /* Reserve a fixed slot wide enough for the worst case (7 buttons: like,
+     mix, +playlist, rename, download, queue-add, delete/remove). 7 × 32px
+     + 6 × 4px = 248px. Without this the duration column shifts between
+     rows that render 5 vs 6 vs 7 buttons (e.g. downloaded vs not, library
+     vs playlist view). justify-content: flex-end stacks the visible
+     buttons to the right of the fixed slot. */
   justify-content: flex-end;
-  min-width: 144px;
+  min-width: 248px;
 }
 .track:hover .track-actions { opacity: 1; }
 .track-actions .icon-btn { width: 32px; height: 32px; }

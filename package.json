@@ -1,6 +1,6 @@
 {
   "name": "wax",
-  "version": "1.4.6",
+  "version": "1.4.7",
   "private": true,
   "description": "Wax — desktop music app (YouTube → MP3 + streaming)",
   "main": "electron/main.cjs",
