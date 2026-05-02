@@ -1,6 +1,5 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { ACCENT_PRESETS, useAccentStore } from '@/stores/accent';
 import { usePrefsStore } from '@/stores/prefs';
 import { useLibraryStore } from '@/stores/library';
 import { usePlaylistsStore } from '@/stores/playlists';
@@ -9,7 +8,6 @@ import { setEq } from '@/composables/useVisualizer';
 import { showToast } from '@/lib/toast';
 
 const prefs = usePrefsStore();
-const accent = useAccentStore();
 const lib = useLibraryStore();
 const pls = usePlaylistsStore();
 
@@ -23,24 +21,6 @@ function swatchStyle(t) {
 
 const themesDark = darkThemes();
 const themesLight = lightThemes();
-
-function setMode(mode) {
-  prefs.accentMode = mode;
-  prefs.save();
-  accent.applyUserAccent();
-}
-
-function setColor(hex) {
-  prefs.accentMode = 'custom';
-  prefs.accentColor = hex;
-  prefs.save();
-  accent.applyUserAccent();
-}
-
-const gridStyle = computed(() => ({
-  opacity: prefs.accentMode === 'custom' ? '1' : '0.4',
-  pointerEvents: prefs.accentMode === 'custom' ? 'auto' : 'none',
-}));
 
 // EQ
 const eqBass = ref(prefs.eq.bass);
@@ -118,36 +98,6 @@ async function purge() {
         <span class="theme-swatch"></span>
         <span class="theme-label">{{ t.label }}</span>
       </button>
-    </div>
-
-    <!-- Accent -->
-    <div class="settings-section settings-section--top-border">
-      <h4>Couleur d'accent</h4>
-      <p class="settings-help">
-        Auto adapte la palette à la pochette en cours. Personnalisée fixe une couleur permanente.
-      </p>
-    </div>
-    <div class="settings-mode-row">
-      <button type="button" class="settings-mode" :class="{ active: prefs.accentMode === 'auto' }" @click="setMode('auto')">
-        Auto · pochette
-      </button>
-      <button type="button" class="settings-mode" :class="{ active: prefs.accentMode === 'custom' }" @click="setMode('custom')">
-        Personnalisée
-      </button>
-    </div>
-    <h4 class="settings-subhead">Couleurs préréglées</h4>
-    <div class="color-grid" :style="gridStyle">
-      <button
-        v-for="p in ACCENT_PRESETS"
-        :key="p.hex"
-        type="button"
-        class="color-swatch"
-        :class="{ active: prefs.accentColor === p.hex }"
-        :style="{ background: p.hex }"
-        :title="p.name"
-        :aria-label="p.name"
-        @click="setColor(p.hex)"
-      ></button>
     </div>
 
     <!-- EQ -->

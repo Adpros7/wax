@@ -7,7 +7,6 @@ import { api } from '@/lib/api';
 import { isStreamId, fmtDuration } from '@/lib/format';
 import { useLibraryStore } from './library';
 import { useStreamsStore } from './streams';
-import { useAccentStore } from './accent';
 import { usePrefsStore } from './prefs';
 import { showToast } from '@/lib/toast';
 
@@ -120,9 +119,6 @@ export const usePlayerStore = defineStore('player', {
           streamsStore.prefetch(nextTrack.ytId);
         }
       }
-      // Adapt accent + media session
-      const accent = useAccentStore();
-      accent.adaptToTrack(track);
       this._updateMediaMetadata(track);
       this.savePlayerState();
       this.playCountedFor = null;
@@ -158,8 +154,6 @@ export const usePlayerStore = defineStore('player', {
       this.playing = false;
       this.loading = false;
       this.visible = false;
-      const accent = useAccentStore();
-      accent.resetAccent();
     },
     toggleShuffle() { this.shuffle = !this.shuffle; },
     cycleRepeat() {
@@ -228,8 +222,6 @@ export const usePlayerStore = defineStore('player', {
       this.audioEl.play().catch(() => {});
 
       this.index = nextIdx;
-      const accent = useAccentStore();
-      accent.adaptToTrack(nextTrack);
       this._updateMediaMetadata(nextTrack);
       this.playCountedFor = null;
 
@@ -425,8 +417,6 @@ export const usePlayerStore = defineStore('player', {
         const t = Math.min(saved.currentTime || 0, Math.max((this.audioEl.duration || 0) - 1, 0));
         this.audioEl.currentTime = t;
       }, { once: true });
-      const accent = useAccentStore();
-      accent.adaptToTrack(track);
       this._updateMediaMetadata(track);
     },
   },

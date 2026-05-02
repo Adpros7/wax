@@ -5,9 +5,9 @@
 //                  carries the inverted surface tints, modal-bg, on-accent,
 //                  logo-filter, etc., shared across all light themes).
 //
-// `swatch` drives the preview pill in Settings. Order: [bg, card, accent].
-// The accent in `swatch` is purely cosmetic for the picker — the actual app
-// accent stays controlled by `prefs.accentMode` (auto-from-cover / custom hex).
+// `swatch` is `[bg, card, accent]`. The accent at swatch[2] is the canonical
+// accent for the theme — it drives both the picker preview AND the live app
+// accent (passed through `accent.applyThemeAccent` on every theme switch).
 export const THEMES = [
   // ---------- Dark family ----------
   { id: 'dark',        label: 'Sombre',      kind: 'dark',  swatch: ['#0d0d10', '#28282e', '#A855F7'] },

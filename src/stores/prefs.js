@@ -8,8 +8,6 @@ export const usePrefsStore = defineStore('prefs', {
     volume: 0.8,
     crossfadeEnabled: false,
     crossfadeDuration: 3,
-    accentMode: 'auto',
-    accentColor: null,
     themeId: DEFAULT_THEME_ID,
     eq: { bass: 0, mid: 0, treble: 0 },
   }),
@@ -19,8 +17,6 @@ export const usePrefsStore = defineStore('prefs', {
         const p = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}');
         if (typeof p.volume === 'number') this.volume = p.volume;
         if (typeof p.crossfadeEnabled === 'boolean') this.crossfadeEnabled = p.crossfadeEnabled;
-        if (p.accentMode) this.accentMode = p.accentMode;
-        if (p.accentColor) this.accentColor = p.accentColor;
         if (p.themeId && THEME_IDS.includes(p.themeId)) {
           this.themeId = p.themeId;
         } else if (p.theme === 'light') {
@@ -39,8 +35,6 @@ export const usePrefsStore = defineStore('prefs', {
         localStorage.setItem(PREFS_KEY, JSON.stringify({
           volume: this.volume,
           crossfadeEnabled: this.crossfadeEnabled,
-          accentMode: this.accentMode,
-          accentColor: this.accentColor,
           themeId: this.themeId,
           eq: this.eq,
         }));

@@ -18,13 +18,12 @@
 - **Audio player** with shuffle / repeat / queue panel / crossfade / lyrics (via lyrics.ovh) / OS media controls (MediaSession API) / "Add to queue" on every row / robust stream-error handling (toast + auto-skip)
 - **3-band equalizer** — bass / mid / treble (±12 dB) via Web Audio BiquadFilters, persisted in prefs
 - **Themes** — 22 presets in Settings, grouped by family. **14 sombres** (Sombre, Ardoise, Minuit, Vinyle, Moka, Bordeaux, Forêt, Studio, Dracula, Nord, Tokyo Night, Rose Pine, Gruvbox, Néon) and **8 clairs** (Papier, Lin, Crème, Sable, Pêche, Menthe, Glacier, Lavande). Crème is the default light: soft warm cream, low-glare for long sessions. Each theme drives its own modal/pill backgrounds so the app stays cohesive end-to-end. All persist across sessions.
-- **Adaptive accent palette** — extracts the dominant color from the current track's thumbnail; user can override with one of 8 presets
 - **Audio-reactive visualizer** on the currently-playing track row (FFT split into bass / mid / high; sqrt curve for sensitivity)
 - **Full-HD covers** — fetches `maxresdefault.jpg` (1280×720) with double fallback (`onerror` + `naturalWidth ≤ 120` placeholder detection) → graceful downgrade to `hqdefault` then `mqdefault`
 - **Loading shimmer + spinners** — shimmer skeleton cards on Découverte / Top, spinners on tracks during buffering — no more "did my click work?" anxiety
 - **In-app rename** — pencil button on every library track opens a prompt modal to retitle (PATCH `/api/library/:id`)
 - **yt-dlp queue indicator** — pulsing badge in the sidebar shows active + queued background downloads
-- **Persisted state** — queue, position, shuffle/repeat, volume, accent prefs, theme, EQ all restored on reload
+- **Persisted state** — queue, position, shuffle/repeat, volume, theme, EQ all restored on reload
 
 ## Stack
 
