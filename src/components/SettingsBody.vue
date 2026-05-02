@@ -7,7 +7,7 @@ import { darkThemes, lightThemes } from '@/lib/themes';
 import { setEq } from '@/composables/useVisualizer';
 import { showToast } from '@/lib/toast';
 import { confirmModal } from '@/lib/modal';
-import { exportToFile, readImportFile, importFromData } from '@/lib/backup';
+import { exportToFile, readImportFile, importFromData, wipeAllData } from '@/lib/backup';
 import { t, SUPPORTED_LOCALES } from '@/lib/i18n';
 
 const prefs = usePrefsStore();
@@ -124,6 +124,33 @@ async function onImportFile(e) {
   } catch (e) {
     showToast(t('common.error_prefix', e.message), 'error');
     importProgress.value = null;
+  }
+}
+
+// Factory reset
+const wiping = ref(false);
+
+async function doWipe() {
+  const ok = await confirmModal({
+    title: t('settings.reset.confirm.title'),
+    message: t('settings.reset.confirm.message', {
+      tracks: lib.tracks.length,
+      playlists: pls.items.length,
+    }),
+    confirmLabel: t('settings.reset.button'),
+    danger: true,
+  });
+  if (!ok) return;
+  wiping.value = true;
+  try {
+    const result = await wipeAllData();
+    showToast(t('settings.reset.done'), 'success');
+    // Reload so every store re-fetches against the empty server state and
+    // the UI is back to a fresh-install look (still with the user's theme).
+    setTimeout(() => window.location.reload(), 700);
+  } catch (e) {
+    showToast(t('common.error_prefix', e.message), 'error');
+    wiping.value = false;
   }
 }
 
@@ -348,6 +375,20 @@ async function purge() {
             {{ purging ? t('settings.library.cleaning') : t('settings.library.clean') }}
           </button>
         </div>
+      </div>
+
+      <!-- Danger zone: factory reset -->
+      <div class="settings-section settings-section--top-border">
+        <h4 class="settings-danger-title">{{ t('settings.reset.title') }}</h4>
+        <p class="settings-help">{{ t('settings.reset.help') }}</p>
+        <button
+          type="button"
+          class="settings-clean-btn settings-danger-btn"
+          :disabled="wiping"
+          @click="doWipe"
+        >
+          {{ wiping ? t('settings.reset.wiping') : t('settings.reset.button') }}
+        </button>
       </div>
     </section>
   </div>

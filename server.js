@@ -632,6 +632,30 @@ app.post('/api/import', express.json({ limit: '32mb' }), (req, res) => {
   res.json({ ok: true, tracks: library.length, playlists: playlists.length });
 });
 
+// Factory reset: empties library.json + playlists.json and deletes every
+// file in the audio + preview directories. Client-side prefs (theme,
+// locale, EQ, crossfade, volume) live in localStorage and are NOT touched
+// — those are UI settings, not data.
+app.post('/api/wipe', (req, res) => {
+  try {
+    const removed = { audio: 0, previews: 0 };
+    saveLibrary([]);
+    savePlaylists([]);
+    for (const [dir, key] of [[AUDIO_DIR, 'audio'], [PREVIEW_DIR, 'previews']]) {
+      if (!fs.existsSync(dir)) continue;
+      for (const file of fs.readdirSync(dir)) {
+        try {
+          fs.unlinkSync(path.join(dir, file));
+          removed[key]++;
+        } catch {}
+      }
+    }
+    res.json({ ok: true, removed });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.post('/api/library/add', (req, res) => {
   const { ytId, title, uploader, duration, thumbnail, url, liked } = req.body || {};
   if (!ytId || !title) return res.status(400).json({ error: 'ytId + title required' });

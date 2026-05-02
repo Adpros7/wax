@@ -119,6 +119,22 @@ export async function readImportFile(file) {
   return data;
 }
 
+// Factory reset: server wipes library + playlists + offline files.
+// Client-side prefs (theme, locale, EQ, …) are kept — they're UI settings,
+// not data.
+export async function wipeAllData() {
+  const res = await fetch('/api/wipe', { method: 'POST' });
+  if (!res.ok) {
+    let msg = `HTTP ${res.status}`;
+    try { const j = await res.json(); msg = j.error || msg; } catch {}
+    throw new Error(msg);
+  }
+  // Clear any client-side player state — the queue can't reference tracks
+  // that no longer exist server-side.
+  writeLocal(PLAYER_STATE_KEY, null);
+  return res.json();
+}
+
 export function importFromData(data, { onProgress } = {}) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();

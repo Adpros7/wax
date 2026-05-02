@@ -8,7 +8,7 @@ This file is for **you, future Claude**. Read it first when starting a session o
 - `server.js` (Express) shells out to `yt-dlp` for searching, downloading, streaming.
 - `src/` — Vue 3 + Vite + Pinia renderer. Wrapped by `electron/main.cjs` (forks `server.js`, opens a BrowserWindow). Packaged via `electron-builder` to `.dmg` / `.exe` / `.AppImage`.
 
-The user is **Dylan**, a senior dev. Communicate concisely, in **French** (he writes in French). Confirm before destructive ops.
+The user is a senior dev who writes in French. Communicate concisely, in **French**. Confirm before destructive ops.
 
 ## Quick reference
 
@@ -35,12 +35,17 @@ Runtime deps (PATH): `yt-dlp`, `ffmpeg`. Falls back via `WAX_YT_DLP` / `WAX_FFMP
   - **yt-dlp concurrency limited to 3** via a semaphore (`runYtDlp`) — prevents CPU saturation when prefetching 10+ search results in parallel. Every SSE progress event is enriched with `ytdlpActive` + `ytdlpQueued` so the sidebar badge can surface global queue depth without polling.
   - SSE for download progress: `GET /api/jobs/:id/progress` streams `data: {type, progress, phase, ytdlpActive, ytdlpQueued}\n\n` lines.
   - Backup endpoints: `GET /api/export` returns `{version, exportedAt, library, playlists}`. `POST /api/import` (per-route 32mb body limit override since the global cap is 1mb) validates the shape and overwrites both `library.json` and `playlists.json` atomically. Used by `src/lib/backup.js`.
+  - Factory reset: `POST /api/wipe` empties `library.json` + `playlists.json` and deletes every file in `library/audio/` and `library/previews/`. Returns `{ok, removed: {audio, previews}}`. Client-side prefs (theme, locale, EQ, volume, crossfade) live in `localStorage` and are NOT touched — they're UI settings, not data.
   - **Thumbnail upgrade on read**: `getLibrary()` rewrites stored `mqdefault/hqdefault` URLs to `maxresdefault.jpg` on the way out. Storage isn't migrated; clients handle the 404 / placeholder fallback. New tracks (search, mix, trending, library/add) all default to `maxresdefault` directly.
 
 ### Electron
 - **`electron/main.cjs`** — Forks `server.js` with env vars (`PORT=3000`, `WAX_LIBRARY_DIR=<userData>/library`, etc.). Creates `BrowserWindow` with `titleBarStyle: 'hiddenInset'` on macOS. Loads Vite URL in dev, `dist/index.html` in prod. Apps launched from Finder/LaunchServices inherit a minimal `PATH`, so the fork augments it with `/opt/homebrew/bin`, `/usr/local/bin`, etc., to make user-installed `yt-dlp` / `ffmpeg` discoverable.
 - **`electron/preload.cjs`** — Exposes `window.wax = { platform, versions }` to the renderer via `contextBridge`. Currently informational only.
 - The root-level `main.cjs` is a leftover from an earlier layout — not wired in (`package.json` `main` points to `electron/main.cjs`). Safe to ignore or delete.
+
+### Marketing / landing (`docs/`)
+- `docs/index.html` — single-file vanilla HTML/CSS landing page used as the project showcase (Reddit posts, social shares, repo About). Mirrors the app's Sombre theme palette with a violet accent. Served via **GitHub Pages** from the `docs/` folder of `main`, public URL `https://dgadacha.github.io/wax/`.
+- `docs/assets/` — logos (`logo-dark.png`, `textlogo-dark.png`) plus screenshots used in the landing's hero + showcase rows (`screenshot-discover.png`, `screenshot-search.png`, `screenshot-playlist.png`, `screenshot-mix.png`, `screenshot-theme.png`). All taken in the Midnight theme. To refresh visuals: drop new PNGs with the same filenames; the landing references them by relative path.
 
 ### Frontend (`src/`)
 
@@ -63,7 +68,7 @@ Runtime deps (PATH): `yt-dlp`, `ffmpeg`. Falls back via `WAX_YT_DLP` / `WAX_FFMP
 - `ModalRoot.vue` — single mounted modal that renders different variants (`confirm`, `prompt`, `lyrics`, `component`) based on `modalState.variant`. Imperatively driven via `lib/modal.js`.
 - `Toast.vue` — single toast bottom-center, driven by `lib/toast.js`.
 - `BulkAddBody.vue`, `AddToPlaylistBody.vue` — modal bodies.
-- `SettingsBody.vue` — Settings modal content, organized as **3 tabs** (`activeTab` ref, default `'general'`): **General** (Crossfade toggle + duration slider, Language picker — `prefs.setLocale(id)` over `SUPPORTED_LOCALES`, Backup — Export / Import via `@/lib/backup`, Library cleanup — orphan count + "Clean" → `lib.purgeOrphans`), **Theme** (theme picker — two sub-grids, dark and light, `prefs.setTheme(id)`), **Equalizer** (3-band ±12 dB sliders → `setEq` from `useVisualizer` + persisted in `prefs.eq`). All labels in the modal use `t()` so the tabs and section content re-render in the chosen language. The import flow opens a danger confirm modal with track + playlist counts before overwriting, then reloads the page on success so every store re-fetches against the freshly written data.
+- `SettingsBody.vue` — Settings modal content, organized as **3 tabs** (`activeTab` ref, default `'general'`): **General** (Crossfade toggle + duration slider, Language picker — `prefs.setLocale(id)` over `SUPPORTED_LOCALES`, Backup — Export / Import via `@/lib/backup` with an inline progress bar, Library cleanup — orphan count + "Clean" → `lib.purgeOrphans`, **Reset** danger zone — `wipeAllData()` with a strongly-worded confirm modal showing the exact counts to be deleted), **Theme** (theme picker — two sub-grids, dark and light, `prefs.setTheme(id)`), **Equalizer** (3-band ±12 dB sliders → `setEq` from `useVisualizer` + persisted in `prefs.eq`). All labels in the modal use `t()` so the tabs and section content re-render in the chosen language. The import and reset flows both reload the page on success so every store re-fetches against the freshly written state.
 - `settings.js` — settings modal opener (custom because it has interactive state).
 
 **`src/stores/`** (Pinia):
@@ -91,7 +96,7 @@ Runtime deps (PATH): `yt-dlp`, `ffmpeg`. Falls back via `WAX_YT_DLP` / `WAX_FFMP
 - `format.js` — `fmtDuration`, `debounce`, `gradientFromString` (hash-based color, fades to `var(--main)`), `eqHtml`, `YT_REGEX`, `isYoutubeUrl`, `isPlaylistUrl`, `isStreamId`, `onThumbError` / `onThumbLoad` (the maxres → hq → mq fallback chain — server upgrades stored thumbnails to `maxresdefault` on read, but YouTube sometimes serves a 120×90 grey placeholder with HTTP 200, so `onThumbLoad` checks `naturalWidth ≤ 120` and downgrades).
 - `icons.js` — all SVG icon constants. Includes `ICON_EDIT` (rename), `ICON_QUEUE_ADD`, `ICON_CLOCK` (recent), `ICON_CHART` (top).
 - `themes.js` — registry of theme presets. Each entry: `{id, labelKey, kind: 'dark'|'light', swatch: [bg, card, accent]}`. 22 themes total — **14 dark** (`dark`, `ardoise`, `midnight`, `vinyle`, `mocha`, `bordeaux`, `forest`, `studio`, `dracula`, `nord`, `tokyo-night`, `rose-pine`, `gruvbox`, `neon`) and **8 light** (`paper`, `lin`, `cream`, `sable`, `peche`, `mint`, `glacier`, `lavende`). `labelKey` is an i18n key (`theme.<id>`) — the picker resolves it through `t()` so theme names follow the active locale. The CSS palette for each lives in `style.css` under `html.theme-<id>` blocks. Each block also overrides `--modal-bg` / `--pill-bg` so modals fit the theme instead of falling back to the neutral grey defaults. `swatch` drives the preview pill in the Settings theme picker (`darkThemes()` / `lightThemes()` helpers split the list for the two sub-grids in `SettingsBody.vue`).
-- `backup.js` — full app export / import. `exportToFile({onProgress})` GETs `/api/export` (streaming the response via `Response.body.getReader()` to track bytes received vs `Content-Length`), merges with `localStorage` (`ytmp3:prefs` + `wax:player`), and triggers a JSON download (`wax-backup-YYYYMMDD.json`). `readImportFile(file)` parses + validates the JSON. `importFromData(data, {onProgress})` POSTs library + playlists to `/api/import` via **`XMLHttpRequest`** (not fetch — XHR's `upload.onprogress` is the only way to track upload progress without manually wrapping the body in a tracking ReadableStream). Server overwrites both files atomically; on success restores localStorage prefs + player state. Both functions accept an optional `onProgress(fraction)` callback (0..1) that the Settings UI feeds into a progress bar under the Export/Import buttons. **Audio MP3s aren't included** — the export bundles metadata only. Tracks keep their `file` paths on import; if the corresponding MP3 isn't present on the new machine, the player falls back to streaming until the user re-downloads. The Settings UI (General tab → "Backup" section) reloads after a successful import so every store re-fetches against the freshly written files.
+- `backup.js` — full app export / import / wipe. `exportToFile({onProgress})` GETs `/api/export` (streaming the response via `Response.body.getReader()` to track bytes received vs `Content-Length`), merges with `localStorage` (`ytmp3:prefs` + `wax:player`), and triggers a JSON download (`wax-backup-YYYYMMDD.json`). `readImportFile(file)` parses + validates the JSON. `importFromData(data, {onProgress})` POSTs library + playlists to `/api/import` via **`XMLHttpRequest`** (not fetch — XHR's `upload.onprogress` is the only way to track upload progress without manually wrapping the body in a tracking ReadableStream). Server overwrites both files atomically; on success restores localStorage prefs + player state. Both functions accept an optional `onProgress(fraction)` callback (0..1) that the Settings UI feeds into a progress bar under the Export/Import buttons. `wipeAllData()` POSTs `/api/wipe` (empties library + playlists + deletes all offline MP3s server-side) and clears the `wax:player` localStorage key — UI prefs (theme, locale, EQ) are kept. **Audio MP3s aren't included in the export** — the export bundles metadata only. Tracks keep their `file` paths on import; if the corresponding MP3 isn't present on the new machine, the player falls back to streaming until the user re-downloads. The Settings UI (General tab → "Backup" / "Reset" sections) reloads after a successful import or wipe so every store re-fetches against the freshly written state.
 - `i18n.js` — tiny reactive i18n. Exports `t(key, params)`, `setLocale(loc)`, `i18nState` (reactive), `SUPPORTED_LOCALES` (`[{id: 'en', label: 'English'}, {id: 'fr', label: 'Français'}]`), `DEFAULT_LOCALE` (`'en'`). Catalogs are flat key → string-or-function maps; functions take a single arg (number for plurals, object for multiple params). Every component that uses `t()` inside its render function re-renders on locale change because `t()` reads `i18nState.locale`. The `<html lang="…">` attribute mirrors the active locale via a `watchEffect`. **Every user-visible string lives here** — when adding new strings, add the key to both `en` and `fr` catalogs, then call `t('your.key')` in the component. The English catalog is the source of truth for missing-key fallback.
 
 **`src/styles/style.css`** — single global stylesheet, ~1700 lines. CSS variables in `:root`:
@@ -231,22 +236,22 @@ The project went through **two major refactors**:
 - Discover never auto-refreshes when favorites change. User must click the ↻ button on the section header.
 - Root-level `main.cjs` is a stale duplicate of `electron/main.cjs` (not referenced by `package.json`). Should be removed.
 
-## Communication style with Dylan
+## Communication style
 
-- French, casual. He says "tu" and writes informally.
+- French, casual. The user says "tu" and writes informally.
 - Explain decisions briefly when proposing options. Confirm before destructive changes.
-- He values **performance** and **polish**: small UX issues (alignment, perceived latency, jank) get flagged.
-- He often iterates: small change → review → next ask. Don't over-engineer.
-- When something is broken, he describes the symptom (not always the cause). Investigate before fixing.
+- The user values **performance** and **polish**: small UX issues (alignment, perceived latency, jank) get flagged.
+- They often iterate: small change → review → next ask. Don't over-engineer.
+- When something is broken, the user describes the symptom (not always the cause). Investigate before fixing.
 
 ## Workflow: "commit et pousse" / "commit and push"
 
-When Dylan asks to commit & push (any phrasing — "commit et pousse", "commit and push", "push", "envoie ça", etc.), do all four of these in **one** flow before pushing:
+When the user asks to commit & push (any phrasing — "commit et pousse", "commit and push", "push", "envoie ça", etc.), do all four of these in **one** flow before pushing:
 
 1. **Bump the version** in `package.json`.
    - Default: **patch** bump (1.0.0 → 1.0.1) — bug fixes, polish, doc-only changes, refactors with no user-visible impact.
    - **Minor** bump (1.0.0 → 1.1.0) — new feature, new endpoint, new view, new public store action.
-   - **Major** bump (1.x → 2.0.0) — only when Dylan asks for it explicitly, or for a breaking change he flagged.
+   - **Major** bump (1.x → 2.0.0) — only when the user asks for it explicitly, or for a breaking change they flagged.
 2. **Update `README.md`** if the change is user-visible (new feature, removed feature, new install/build step, new dep). Skip if it's an internal refactor or a tiny fix.
 3. **Update `CLAUDE.md`** if architecture, files, stores, key flows, gotchas, or active TODOs shifted. Skip for cosmetic-only fixes.
 4. **Then commit and push** in a single commit that includes the version bump + doc updates alongside the actual code change.

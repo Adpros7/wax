@@ -205,6 +205,16 @@ const messages = {
     'settings.data.import_confirm.message': ({ tracks, playlists }) =>
       `This will overwrite your library and playlists with ${tracks} track${tracks === 1 ? '' : 's'} and ${playlists} playlist${playlists === 1 ? '' : 's'} from the backup. The app will reload.`,
 
+    // Settings — factory reset
+    'settings.reset.title': 'Reset',
+    'settings.reset.help': 'Permanently delete all tracks, playlists, and offline MP3s. Your theme, language, and other UI preferences are kept. This cannot be undone.',
+    'settings.reset.button': 'Reset everything',
+    'settings.reset.wiping': 'Resetting…',
+    'settings.reset.done': 'Library reset — reloading…',
+    'settings.reset.confirm.title': 'Reset all your data?',
+    'settings.reset.confirm.message': ({ tracks, playlists }) =>
+      `This will permanently delete ${tracks} track${tracks === 1 ? '' : 's'}, ${playlists} playlist${playlists === 1 ? '' : 's'}, and every offline MP3 file. Your theme and other UI preferences are kept. The app will reload.`,
+
     // Modal labels
     'modal.add_to_playlist': 'Add to a playlist',
     'modal.add_to_named': (name) => `Add to "${name}"`,
@@ -470,6 +480,16 @@ const messages = {
     'settings.data.import_confirm.title': 'Remplacer toutes tes données ?',
     'settings.data.import_confirm.message': ({ tracks, playlists }) =>
       `Cela écrasera ta bibliothèque et tes playlists avec ${tracks} piste${tracks > 1 ? 's' : ''} et ${playlists} playlist${playlists > 1 ? 's' : ''} venant de la sauvegarde. L'app rechargera.`,
+
+    // Settings — factory reset
+    'settings.reset.title': 'Réinitialiser',
+    'settings.reset.help': "Supprime définitivement toutes tes pistes, playlists et fichiers MP3 hors ligne. Ton thème, ta langue et tes autres préférences UI sont conservés. Action irréversible.",
+    'settings.reset.button': 'Tout réinitialiser',
+    'settings.reset.wiping': 'Réinitialisation…',
+    'settings.reset.done': 'Bibliothèque réinitialisée — rechargement…',
+    'settings.reset.confirm.title': 'Réinitialiser toutes tes données ?',
+    'settings.reset.confirm.message': ({ tracks, playlists }) =>
+      `Cela va supprimer définitivement ${tracks} piste${tracks > 1 ? 's' : ''}, ${playlists} playlist${playlists > 1 ? 's' : ''} et tous les fichiers MP3 hors ligne. Ton thème et tes préférences UI sont conservés. L'app rechargera.`,
 
     // Modal labels
     'modal.add_to_playlist': 'Ajouter à une playlist',

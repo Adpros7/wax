@@ -2183,6 +2183,17 @@ input[type="range"]:hover::-moz-range-track {
 }
 .settings-clean-btn:disabled { opacity: 0.4; cursor: default; }
 
+.settings-danger-title { color: var(--error); }
+.settings-danger-btn {
+  border-color: rgba(241, 94, 108, 0.4);
+  color: var(--error);
+}
+.settings-danger-btn:hover:not(:disabled) {
+  background: var(--error);
+  border-color: var(--error);
+  color: #fff;
+}
+
 /* Inline progress bar shown under the export/import row while running. */
 .settings-progress {
   display: flex;
