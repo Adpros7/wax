@@ -1,6 +1,7 @@
 <script setup>
 import { computed, watch, ref, nextTick } from 'vue';
 import { modalState, closeModal, confirmFromModal } from '@/lib/modal';
+import { t } from '@/lib/i18n';
 
 const inputRef = ref(null);
 
@@ -72,7 +73,7 @@ watch(
       </div>
       <div class="modal-actions">
         <button class="secondary-btn" @click="closeModal">
-          {{ modalState.cancelLabel || 'Annuler' }}
+          {{ modalState.cancelLabel || t('common.cancel') }}
         </button>
         <button
           v-if="modalState.onConfirm"
@@ -81,7 +82,7 @@ watch(
           :disabled="modalState.confirmEnabled === false"
           @click="confirmFromModal"
         >
-          {{ modalState.confirmLabel || 'OK' }}
+          {{ modalState.confirmLabel || t('common.confirm') }}
         </button>
       </div>
     </div>

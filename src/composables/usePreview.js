@@ -4,6 +4,7 @@
 import { reactive } from 'vue';
 import { api } from '@/lib/api';
 import { showToast } from '@/lib/toast';
+import { t } from '@/lib/i18n';
 import { usePlayerStore } from '@/stores/player';
 import { usePrefsStore } from '@/stores/prefs';
 
@@ -48,7 +49,7 @@ export async function togglePreview(videoId) {
         previewState.audio = null;
         previewState.videoId = null;
       }
-      showToast('Aperçu illisible', 'error');
+      showToast(t('toast.preview_unreadable'), 'error');
     });
     await audio.play();
     previewState.audio = audio;
@@ -56,7 +57,7 @@ export async function togglePreview(videoId) {
     previewState.loadingId = null;
   } catch (e) {
     if (previewState.loadingId === videoId) previewState.loadingId = null;
-    showToast('Aperçu indisponible', 'error');
+    showToast(t('toast.preview_unavailable'), 'error');
   }
 }
 

@@ -2,6 +2,7 @@
 import { defineStore } from 'pinia';
 import { api } from '@/lib/api';
 import { showToast } from '@/lib/toast';
+import { t } from '@/lib/i18n';
 import { useLibraryStore } from './library';
 
 export const useJobsStore = defineStore('jobs', {
@@ -60,8 +61,8 @@ export const useJobsStore = defineStore('jobs', {
           const m = new Map(this.activeDownloads);
           m.delete(job.url);
           this.activeDownloads = m;
-          if (data.duplicate) showToast('Déjà dans la bibliothèque', 'success');
-          else showToast(`Ajouté : ${data.track.title}`, 'success');
+          if (data.duplicate) showToast(t('toast.already_in_library'), 'success');
+          else showToast(t('toast.added_named', data.track.title), 'success');
           const lib = useLibraryStore();
           await lib.fetch();
           if (onReady) onReady(data.track);
@@ -75,7 +76,7 @@ export const useJobsStore = defineStore('jobs', {
           const m = new Map(this.activeDownloads);
           m.delete(job.url);
           this.activeDownloads = m;
-          showToast('Erreur : ' + data.error, 'error');
+          showToast(t('common.error_prefix', data.error), 'error');
           es.close();
         }
       };

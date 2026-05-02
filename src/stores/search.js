@@ -2,6 +2,7 @@
 import { defineStore } from 'pinia';
 import { api } from '@/lib/api';
 import { showToast } from '@/lib/toast';
+import { t } from '@/lib/i18n';
 import { isYoutubeUrl, isPlaylistUrl, debounce } from '@/lib/format';
 import { useStreamsStore } from './streams';
 
@@ -60,7 +61,7 @@ export const useSearchStore = defineStore('search', {
       // Free-text search
       if (value.length < 2) return;
       this.status = 'searching';
-      this.statusMessage = 'Recherche YouTube…';
+      this.statusMessage = t('search.searching');
       try {
         const { results } = await api(`/api/search?q=${encodeURIComponent(value)}`);
         this.results = results;
@@ -69,19 +70,19 @@ export const useSearchStore = defineStore('search', {
         results.forEach((r) => streams.prefetch(r.id));
       } catch (e) {
         this.status = 'error';
-        this.statusMessage = 'Recherche échouée : ' + e.message;
+        this.statusMessage = t('search.failed', e.message);
       }
     },
     async _loadPlaylistSource(url) {
       const streams = useStreamsStore();
       try {
-        showToast('Lecture de la playlist YouTube...');
+        showToast(t('toast.youtube_playlist_loading'));
         const { tracks } = await api(`/api/playlist-info?url=${encodeURIComponent(url)}`);
         this.playlistSource = { url, tracks };
         this.playlistSelection = new Set(tracks.map((t) => t.id));
         tracks.forEach((t) => streams.prefetch(t.id));
       } catch (e) {
-        showToast('Énumération impossible : ' + e.message, 'error');
+        showToast(t('toast.youtube_enum_failed', e.message), 'error');
       }
     },
   },

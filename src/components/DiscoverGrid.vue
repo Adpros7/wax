@@ -3,11 +3,12 @@ import { computed } from 'vue';
 import { useDiscoverStore } from '@/stores/discover';
 import { usePlayerStore } from '@/stores/player';
 import { onThumbError, onThumbLoad } from '@/lib/format';
+import { t } from '@/lib/i18n';
 
 const discover = useDiscoverStore();
 const player = usePlayerStore();
 
-const queueIds = computed(() => discover.tracks.map((t) => t.id));
+const queueIds = computed(() => discover.tracks.map((tr) => tr.id));
 const currentId = computed(() => player.queue[player.index] || null);
 
 function isLoading(track) {
@@ -32,17 +33,17 @@ function onDragStart(event, track) {
   <section class="discover" v-if="discover.tracks.length > 0 || discover.loading">
     <div class="discover-header">
       <div>
-        <h2>{{ discover.seedTrack ? 'Découverte' : 'Top du moment' }}</h2>
+        <h2>{{ discover.seedTrack ? t('discover.title') : t('discover.top_today') }}</h2>
         <p v-if="discover.seedTrack" class="discover-sub">
-          Inspiré par
+          {{ t('discover.inspired_by_label') }}
           <em>{{ discover.seedTrack.title }}</em>
         </p>
-        <p v-else class="discover-sub">Les hits du moment sur YouTube</p>
+        <p v-else class="discover-sub">{{ t('discover.top_subtitle') }}</p>
       </div>
       <button
         class="icon-btn"
         :disabled="discover.loading"
-        title="Régénérer"
+        :title="t('discover.refresh')"
         @click="discover.refresh()"
       >
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -68,7 +69,7 @@ function onDragStart(event, track) {
       >
         <div class="discover-card-cover">
           <img :src="t.thumbnail" alt="" loading="lazy" @error="onThumbError" @load="onThumbLoad" />
-          <div v-if="isLoading(t)" class="discover-card-spinner" aria-label="Chargement…"></div>
+          <div v-if="isLoading(t)" class="discover-card-spinner"></div>
         </div>
         <div class="discover-card-meta">
           <div class="discover-card-title">{{ t.title }}</div>

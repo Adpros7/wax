@@ -9,6 +9,7 @@ import { useLibraryStore } from './library';
 import { useStreamsStore } from './streams';
 import { usePrefsStore } from './prefs';
 import { showToast } from '@/lib/toast';
+import { t } from '@/lib/i18n';
 
 const PLAYER_STATE_KEY = 'wax:player';
 
@@ -78,7 +79,7 @@ export const usePlayerStore = defineStore('player', {
       el.addEventListener('error', () => {
         this.loading = false;
         const track = findTrack(this.queue[this.index]);
-        showToast(track ? `Impossible de lire « ${track.title} »` : 'Erreur de lecture', 'error');
+        showToast(track ? t('toast.play_error_named', track.title) : t('toast.play_error'), 'error');
         setTimeout(() => { if (this.queue.length > 1) this.next(); }, 3000);
       });
       el.addEventListener('timeupdate', () => this._onAudioTimeUpdate());
@@ -178,12 +179,12 @@ export const usePlayerStore = defineStore('player', {
     },
     addToQueue(trackId) {
       if (this.queue.includes(trackId)) {
-        showToast('Déjà dans la queue');
+        showToast(t('toast.already_in_queue'));
         return;
       }
       const insertAt = this.queue.length > 0 ? this.index + 1 : 0;
       this.queue.splice(insertAt, 0, trackId);
-      showToast('Ajouté à la queue', 'success');
+      showToast(t('toast.added_to_queue'), 'success');
     },
     toggleQueueOpen() { this.queueOpen = !this.queueOpen; },
     closeQueue() { this.queueOpen = false; },

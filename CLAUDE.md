@@ -4,10 +4,9 @@ This file is for **you, future Claude**. Read it first when starting a session o
 
 ## TL;DR — what is this?
 
-**Wax** is a YouTube → MP3 player with two clients on the same backend:
-- `server.js` (Express) shells out to `yt-dlp` for searching, downloading, streaming. Same endpoints serve both clients.
-- `src/` — desktop renderer (Vue 3 + Vite + Pinia). Wrapped by `electron/main.cjs` (forks `server.js`, opens a BrowserWindow). Packaged via `electron-builder` to `.dmg` / `.exe` / `.AppImage`.
-- `flutter/` — iOS companion (Flutter 3 + Riverpod + just_audio + audio_service). Hits the same Express endpoints over the LAN. `API_BASE` is baked at build time via `--dart-define`.
+**Wax** is a desktop YouTube → MP3 player. Single Electron app, single backend:
+- `server.js` (Express) shells out to `yt-dlp` for searching, downloading, streaming.
+- `src/` — Vue 3 + Vite + Pinia renderer. Wrapped by `electron/main.cjs` (forks `server.js`, opens a BrowserWindow). Packaged via `electron-builder` to `.dmg` / `.exe` / `.AppImage`.
 
 The user is **Dylan**, a senior dev. Communicate concisely, in **French** (he writes in French). Confirm before destructive ops.
 
@@ -42,15 +41,6 @@ Runtime deps (PATH): `yt-dlp`, `ffmpeg`. Falls back via `WAX_YT_DLP` / `WAX_FFMP
 - **`electron/preload.cjs`** — Exposes `window.wax = { platform, versions }` to the renderer via `contextBridge`. Currently informational only.
 - The root-level `main.cjs` is a leftover from an earlier layout — not wired in (`package.json` `main` points to `electron/main.cjs`). Safe to ignore or delete.
 
-### Mobile (`flutter/`)
-Flutter 3 + Riverpod iOS app. Same backend, no mobile-specific endpoints.
-- **`lib/api/api_client.dart`** — Single Dio client. Base URL injected at build time via `--dart-define=API_BASE=http://...:3000`. Helpers wrap every endpoint the desktop app uses (`/api/library`, `/api/playlists`, `/api/search`, `/api/trending`, `/api/stream/:id`, `/api/library/add`, `PATCH /api/library/:id`, etc.). `streamUrl(ytId)` and `fileUrl(filePath)` build full URLs the audio player can hit directly.
-- **`lib/api/models.dart`** — `Track`, `Playlist` with `fromLibrary` / `fromSearch` factories so search hits and library rows share the same shape.
-- **`lib/audio/audio_handler.dart`** — `WaxAudioHandler` extends `BaseAudioHandler`. Drives `just_audio` and exposes lock-screen / Control Center controls via `audio_service`.
-- **`lib/providers.dart`** — Riverpod graph. Notable providers: `apiClientProvider`, `audioHandlerProvider`, `libraryProvider` (async), `playlistsProvider` (async + optimistic mutations), `searchQueryProvider` + `searchResultsProvider` (350 ms debounce inside the FutureProvider), `mediaItemProvider` / `playbackStateProvider` / `positionProvider` (streams from `audio_service`), `isCurrentFavoriteProvider` + `toggleCurrentFavorite(ref)` for the now-playing heart. `initAudioService(container)` runs once in `main()` before `runApp`.
-- **`lib/screens/`** — Home, Library, Search, Playlists, PlaylistDetail, NowPlaying. **`lib/widgets/`** — MiniPlayer, TrackTile, TrackActions.
-- **Run**: `cd flutter && flutter pub get && flutter run --dart-define=API_BASE=http://<mac-ip>:3000`. Both devices must be on the same LAN.
-
 ### Frontend (`src/`)
 
 **Entry point**: `src/main.js` mounts `App.vue` to `#app` in `index.html` (root-level Vite entry HTML, NOT in `public/`).
@@ -72,14 +62,14 @@ Flutter 3 + Riverpod iOS app. Same backend, no mobile-specific endpoints.
 - `ModalRoot.vue` — single mounted modal that renders different variants (`confirm`, `prompt`, `lyrics`, `component`) based on `modalState.variant`. Imperatively driven via `lib/modal.js`.
 - `Toast.vue` — single toast bottom-center, driven by `lib/toast.js`.
 - `BulkAddBody.vue`, `AddToPlaylistBody.vue` — modal bodies.
-- `SettingsBody.vue` — Settings modal content. Sections: Apparence (theme picker — two sub-grids, dark and light, `prefs.setTheme(id)`), Égaliseur (3-band ±12 dB sliders → `setEq` from `useVisualizer` + persisted in `prefs.eq`), Bibliothèque (orphan count + "Nettoyer" → `lib.purgeOrphans`).
+- `SettingsBody.vue` — Settings modal content, organized as **3 tabs** (`activeTab` ref): **Theme** (theme picker — two sub-grids, dark and light, `prefs.setTheme(id)`), **Equalizer** (3-band ±12 dB sliders → `setEq` from `useVisualizer` + persisted in `prefs.eq`), **General** (Crossfade toggle + duration slider, Language picker — `prefs.setLocale(id)` over `SUPPORTED_LOCALES`, Library cleanup — orphan count + "Clean" → `lib.purgeOrphans`). All labels in the modal use `t()` so the tabs and section content re-render in the chosen language.
 - `settings.js` — settings modal opener (custom because it has interactive state).
 
 **`src/stores/`** (Pinia):
 - `library.js` — `tracks`, `loading`, `search`, `libraryDownloads` (Map), `ytdlpStatus: {active, queued}` (driven by SSE — server enriches every progress event with the current semaphore counters). Actions: `fetch`, `add(r, opts)` (opts.liked default true; opts.silent skips the toast), `remove`, `removeByYtId`, `deleteTrack`, `toggleFav` (toggles `liked` flag, doesn't delete), `_setLiked` (PATCH /api/library/:id), `reorder`, `renameTrack(id, title)` (PATCH /api/library/:id with title; optimistic + rollback on error), `removeDownload(id)` (DELETE /api/library/:id/download — strips `file` but keeps the metadata row), `purgeOrphans` (deletes every track with `liked:false` not referenced by any playlist), `downloadTrack`, `_listenLibraryProgress` (SSE), `smartTracks(kind)` ('recent' = last 30 by addedAt; 'top' = top 30 by playCount). Getters: `favorites` (tracks where `liked !== false`), `filtered` (favorites + search filter), `isInLibrary(track)`, `isFavorite(track)`. **All mutations are local-first** (no full re-fetch round-trip after add/remove).
 - `playlists.js` — `items`. Actions: `fetch`, `dropTrackLocally` (called by library.remove), `create`, `remove`, `rename`, `addTrack`, `addTracksBulk`, `removeTrack`, `reorder`.
 - `player.js` — `queue`, `index`, `playing`, `loading` (true between `loadAndPlay()` and the first audio `playing` event), `shuffle`, `repeat`, `volume`, `currentTime`, `duration`, `audioEl`, `audio2El`. Actions: `bindAudio` (wires `play`/`pause`/`playing`/`waiting`/`error`/`timeupdate`/`ended` events; on `error` shows a toast and auto-skips after 3 s if there's another track in the queue), `playFromList`, `loadAndPlay` (also prefetches the next streamable track in queue — look-ahead), `togglePlay`, `next`, `prev`, `stop`, `seekToPct`, `setVolume`, `addToQueue(trackId)` (inserts at `index+1`, blocks duplicates with a toast), MediaSession setup, persistence (save/restore to localStorage), crossfade orchestration.
-- `prefs.js` — `volume`, `crossfadeEnabled`, `crossfadeDuration`, `themeId` (one of `THEME_IDS` from `@/lib/themes`), `eq: {bass, mid, treble}`. Persisted via `ytmp3:prefs` localStorage key. `setTheme(id)` swaps the `theme-<id>` class on `documentElement` (also toggles the shared `light` class for light-kind themes), saves prefs, and dispatches a `wax:theme-changed` window event so `App.vue` can re-derive the accent (the hero band's `--accent-bg` lightness depends on theme kind). `load()` migrates any pre-existing `theme: 'light' | 'dark'` to the new `themeId` (legacy `light` → `cream`, since the original crisp-white light palette was too harsh). Stale `accentMode` / `accentColor` keys from older saved prefs are ignored — the accent system was retired in favor of theme-baked accents.
+- `prefs.js` — `volume`, `crossfadeEnabled`, `crossfadeDuration`, `themeId` (one of `THEME_IDS` from `@/lib/themes`), `locale` (one of `SUPPORTED_LOCALES` from `@/lib/i18n` — `'en'` default, `'fr'`), `eq: {bass, mid, treble}`. Persisted via `ytmp3:prefs` localStorage key. `setTheme(id)` swaps the `theme-<id>` class on `documentElement` (also toggles the shared `light` class for light-kind themes), saves prefs, and dispatches a `wax:theme-changed` window event so `App.vue` can re-derive the accent (the hero band's `--accent-bg` lightness depends on theme kind). `setLocale(loc)` calls into `i18n.setLocale()` (mutates the reactive `i18nState.locale`), saves prefs — every call site that uses `t()` re-renders. `load()` migrates any pre-existing `theme: 'light' | 'dark'` to the new `themeId` (legacy `light` → `cream`, since the original crisp-white light palette was too harsh). Stale `accentMode` / `accentColor` keys from older saved prefs are ignored — the accent system was retired in favor of theme-baked accents.
 - `accent.js` — theme-driven accent. Single action `applyThemeAccent()` reads `prefs.themeId`, resolves the theme via `themeById`, and pushes the third `swatch` entry (the theme's accent hex) through `hexToHsl` + the internal `applyHsl` (sets `--accent`, `--accent-bright`, `--accent-dark`, `--accent-soft`, `--accent-bg`, `--accent-glow` on `documentElement.style`). The hero band's `--accent-bg` is theme-kind aware (L=86% pastel for light, L=22% saturated for dark). No more cover-derived accent or user-picked palette — the previous `extractDominantColor` / `applyUserAccent` / `adaptToTrack` / `ACCENT_PRESETS` are all gone.
 - `view.js` — `name` ('download' | 'library' | 'playlist' | 'mix' | 'smart'), `selectedPlaylistId`, `smartView`. Actions: `switchTo`.
 - `mix.js` — `tempMix` (the 50-track YouTube Mix in flight). Actions: `streamFrom` (no bulk prefetch; relies on player look-ahead), `save` (creates playlist + adds metadata-only library entries with `liked: false` + bulk-attaches them — never downloads), `close`, `playAll`.
@@ -100,6 +90,7 @@ Flutter 3 + Riverpod iOS app. Same backend, no mobile-specific endpoints.
 - `format.js` — `fmtDuration`, `debounce`, `gradientFromString` (hash-based color, fades to `var(--main)`), `eqHtml`, `YT_REGEX`, `isYoutubeUrl`, `isPlaylistUrl`, `isStreamId`, `onThumbError` / `onThumbLoad` (the maxres → hq → mq fallback chain — server upgrades stored thumbnails to `maxresdefault` on read, but YouTube sometimes serves a 120×90 grey placeholder with HTTP 200, so `onThumbLoad` checks `naturalWidth ≤ 120` and downgrades).
 - `icons.js` — all SVG icon constants. Includes `ICON_EDIT` (rename), `ICON_QUEUE_ADD`, `ICON_CLOCK` (recent), `ICON_CHART` (top).
 - `themes.js` — registry of theme presets. Each entry: `{id, label, kind: 'dark'|'light', swatch: [bg, card, accent]}`. 22 themes total — **14 dark** (`dark`, `ardoise`, `midnight`, `vinyle`, `mocha`, `bordeaux`, `forest`, `studio`, `dracula`, `nord`, `tokyo-night`, `rose-pine`, `gruvbox`, `neon`) and **8 light** (`paper`, `lin`, `cream`, `sable`, `peche`, `mint`, `glacier`, `lavende`). The CSS palette for each lives in `style.css` under `html.theme-<id>` blocks. Each block also overrides `--modal-bg` / `--pill-bg` so modals fit the theme instead of falling back to the neutral grey defaults. `swatch` drives the preview pill in the Settings theme picker (`darkThemes()` / `lightThemes()` helpers split the list for the two sub-grids in `SettingsBody.vue`).
+- `i18n.js` — tiny reactive i18n. Exports `t(key, params)`, `setLocale(loc)`, `i18nState` (reactive), `SUPPORTED_LOCALES` (`[{id: 'en', label: 'English'}, {id: 'fr', label: 'Français'}]`), `DEFAULT_LOCALE` (`'en'`). Catalogs are flat key → string-or-function maps; functions take a single arg (number for plurals, object for multiple params). Every component that uses `t()` inside its render function re-renders on locale change because `t()` reads `i18nState.locale`. The `<html lang="…">` attribute mirrors the active locale via a `watchEffect`. **Every user-visible string lives here** — when adding new strings, add the key to both `en` and `fr` catalogs, then call `t('your.key')` in the component. The English catalog is the source of truth for missing-key fallback.
 
 **`src/styles/style.css`** — single global stylesheet, ~1700 lines. CSS variables in `:root`:
 - Layout: `--main`, `--card`, `--card-hover`, `--text`, `--text-soft`, `--text-muted`, `--border`
@@ -169,7 +160,8 @@ Drag region for window movement: `-webkit-app-region: drag` on `.brand` and `.si
 - **Modals**: imperative API via `lib/modal.js`. Don't try to mount modals declaratively — `ModalRoot.vue` handles everything. For interactive modal content (e.g. bulk-add with selection state), pass a Vue component as `componentProps` to `openComponentModal`.
 - **Toasts**: `showToast(msg, kind?)` — `kind` is `'success' | 'error' | undefined`.
 - **Emoji in code**: avoid in source files unless the user explicitly asks (per repo norm).
-- **French in user-facing strings**, code/comments in English.
+- **i18n is mandatory for user-visible strings** — call `t('namespace.key')`, never inline literals. Add the key to both `en` and `fr` catalogs in `src/lib/i18n.js`. Code, comments, console logs stay in English.
+- **Variable shadowing watch-out**: `t` is the i18n function, but `t` is also a popular loop/track variable name historically. In stores and templates that import `i18n`, prefer `track` / `tr` for track variables. Inside `v-for="t in …"` Vue treats the loop variable as local scope, so calling i18n's `t()` *outside* the v-for in the same template is fine — but inside the v-for body it would resolve to the loop variable.
 
 ## Common tasks
 
@@ -232,10 +224,9 @@ The project went through **two major refactors**:
 ## Active TODOs / known gaps
 
 - `build/icon.icns` and `build/icon.ico` not committed — `dist:mac` / `dist:win` will fail until they're added.
-- No code signing / notarization configured (desktop or iOS).
+- No code signing / notarization configured.
 - No keyboard shortcut help overlay (Space play/pause + Esc close-modal exist but aren't documented in-app).
 - Discover never auto-refreshes when favorites change. User must click the ↻ button on the section header.
-- Mobile (Flutter) is read-mostly: no offline-download trigger, no playlist drag-reorder, no mix view yet — all those endpoints exist server-side, just not wired in the iOS UI.
 - Root-level `main.cjs` is a stale duplicate of `electron/main.cjs` (not referenced by `package.json`). Should be removed.
 
 ## Communication style with Dylan
@@ -250,11 +241,10 @@ The project went through **two major refactors**:
 
 When Dylan asks to commit & push (any phrasing — "commit et pousse", "commit and push", "push", "envoie ça", etc.), do all four of these in **one** flow before pushing:
 
-1. **Bump the version** in both `package.json` and `flutter/pubspec.yaml` (keep them in sync).
+1. **Bump the version** in `package.json`.
    - Default: **patch** bump (1.0.0 → 1.0.1) — bug fixes, polish, doc-only changes, refactors with no user-visible impact.
    - **Minor** bump (1.0.0 → 1.1.0) — new feature, new endpoint, new view, new public store action.
    - **Major** bump (1.x → 2.0.0) — only when Dylan asks for it explicitly, or for a breaking change he flagged.
-   - For Flutter, append `+N` build code (`1.0.1+2`) — increment monotonically.
 2. **Update `README.md`** if the change is user-visible (new feature, removed feature, new install/build step, new dep). Skip if it's an internal refactor or a tiny fix.
 3. **Update `CLAUDE.md`** if architecture, files, stores, key flows, gotchas, or active TODOs shifted. Skip for cosmetic-only fixes.
 4. **Then commit and push** in a single commit that includes the version bump + doc updates alongside the actual code change.

@@ -2,6 +2,7 @@
 import { usePlaylistsStore } from '@/stores/playlists';
 import { showToast } from '@/lib/toast';
 import { closeModal } from '@/lib/modal';
+import { t } from '@/lib/i18n';
 
 const props = defineProps({ trackId: { type: String, required: true } });
 
@@ -10,11 +11,11 @@ const playlists = usePlaylistsStore();
 async function pick(pl) {
   const inPl = pl.trackIds.includes(props.trackId);
   if (inPl) {
-    showToast('Déjà dans cette playlist');
+    showToast(t('toast.already_in_playlist'));
     return;
   }
   await playlists.addTrack(pl.id, props.trackId);
-  showToast(`Ajouté à « ${pl.name} »`, 'success');
+  showToast(t('toast.added_to_named_playlist', pl.name), 'success');
   closeModal();
 }
 </script>
@@ -22,7 +23,7 @@ async function pick(pl) {
 <template>
   <div class="modal-pl-list">
     <p v-if="playlists.items.length === 0" class="empty-state">
-      Aucune playlist. Crée-en une depuis la sidebar (icône +).
+      {{ t('modal.no_playlists') }}
     </p>
     <div
       v-for="pl in playlists.items"
@@ -34,8 +35,8 @@ async function pick(pl) {
       <span class="pl-mini-count">
         {{
           pl.trackIds.includes(trackId)
-            ? 'Déjà ajouté'
-            : `${pl.trackIds.length} titre${pl.trackIds.length > 1 ? 's' : ''}`
+            ? t('modal.already_added')
+            : t('common.tracks', pl.trackIds.length)
         }}
       </span>
     </div>

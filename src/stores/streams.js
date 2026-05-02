@@ -2,6 +2,7 @@
 // `state.streams` Map + prefetch/streamSearchResult helpers.
 import { defineStore } from 'pinia';
 import { showToast } from '@/lib/toast';
+import { t } from '@/lib/i18n';
 
 export const useStreamsStore = defineStore('streams', {
   state: () => ({
@@ -47,7 +48,7 @@ export const useStreamsStore = defineStore('streams', {
       }, { once: true });
       player.audioEl?.addEventListener('error', () => {
         if (btn) btn.classList.remove('is-loading');
-        showToast('Stream indisponible', 'error');
+        showToast(t('toast.stream_unavailable'), 'error');
       }, { once: true });
       player.queue = [streamId];
       player.index = 0;

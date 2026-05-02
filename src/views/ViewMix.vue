@@ -4,6 +4,7 @@ import { useMixStore } from '@/stores/mix';
 import { useViewStore } from '@/stores/view';
 import { useStreamsStore } from '@/stores/streams';
 import { usePlayerStore } from '@/stores/player';
+import { t } from '@/lib/i18n';
 import TrackRow from '@/components/TrackRow.vue';
 
 const mix = useMixStore();
@@ -20,7 +21,9 @@ const tracks = computed(() => {
 
 const queueIds = computed(() => mix.current?.queueIds || []);
 const meta = computed(() =>
-  mix.current ? `${mix.current.queueIds.length} pistes · non sauvegardé` : '',
+  mix.current
+    ? `${t('common.tracks', mix.current.queueIds.length)} · ${t('mix.unsaved')}`
+    : '',
 );
 
 function playAll() {
@@ -44,14 +47,14 @@ function close() {
   <section id="view-mix" class="view active">
     <header class="hero hero-mix">
       <div class="hero-content">
-        <span class="eyebrow">Mix inspiré · Temporaire</span>
-        <h1>{{ mix.current ? `Mix inspiré par « ${mix.current.sourceTitle} »` : 'Mix' }}</h1>
+        <span class="eyebrow">{{ t('mix.eyebrow_temp') }}</span>
+        <h1>{{ mix.current ? t('mix.hero', mix.current.sourceTitle) : t('mix.eyebrow') }}</h1>
         <p class="hero-meta">{{ meta }}</p>
       </div>
     </header>
     <div class="page-body">
       <div class="action-row">
-        <button class="play-circle" title="Tout lire" @click="playAll">
+        <button class="play-circle" :title="t('playlist.play_all')" @click="playAll">
           <svg viewBox="0 0 24 24" fill="currentColor">
             <path d="M8 5v14l11-7z" />
           </svg>
@@ -66,9 +69,9 @@ function close() {
               stroke-linejoin="round"
             />
           </svg>
-          Sauvegarder
+          {{ t('mix.save') }}
         </button>
-        <button class="icon-btn round large danger" title="Fermer le mix" @click="close">
+        <button class="icon-btn round large danger" :title="t('mix.close_title')" @click="close">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
           </svg>

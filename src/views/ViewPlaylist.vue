@@ -6,6 +6,7 @@ import { usePlaylistsStore } from '@/stores/playlists';
 import { usePlayerStore } from '@/stores/player';
 import { showToast } from '@/lib/toast';
 import { fmtDuration, gradientFromString } from '@/lib/format';
+import { t } from '@/lib/i18n';
 import TrackRow from '@/components/TrackRow.vue';
 import { openComponentModal, closeModal } from '@/lib/modal';
 import BulkAddBody from '@/components/BulkAddBody.vue';
@@ -20,8 +21,8 @@ const tracks = computed(() => {
   if (!playlist.value) return [];
   return playlist.value.trackIds.map((id) => lib.findById(id)).filter(Boolean);
 });
-const queueIds = computed(() => tracks.value.map((t) => t.id));
-const totalDuration = computed(() => tracks.value.reduce((s, t) => s + (t.duration || 0), 0));
+const queueIds = computed(() => tracks.value.map((tr) => tr.id));
+const totalDuration = computed(() => tracks.value.reduce((s, tr) => s + (tr.duration || 0), 0));
 const heroBg = computed(() => playlist.value ? gradientFromString(playlist.value.name) : '');
 
 function playAll() {
@@ -57,24 +58,21 @@ async function addTracks() {
   const pl = playlist.value;
   const available = lib.tracks.filter((t) => !pl.trackIds.includes(t.id));
   if (available.length === 0) {
-    showToast('Toutes tes pistes sont déjà ici', 'success');
+    showToast(t('toast.all_already_here'), 'success');
     return;
   }
   const selection = new Set();
   openComponentModal({
-    title: `Ajouter à « ${pl.name} »`,
+    title: t('modal.add_to_named', pl.name),
     component: BulkAddBody,
     componentProps: { available, selection },
-    confirmLabel: 'Ajouter',
+    confirmLabel: t('common.add'),
     wide: true,
     onConfirm: async () => {
       if (selection.size === 0) return;
       const ok = await playlists.addTracksBulk(pl.id, Array.from(selection));
       if (ok) {
-        showToast(
-          `${selection.size} piste${selection.size > 1 ? 's ajoutées' : ' ajoutée'}`,
-          'success',
-        );
+        showToast(t('toast.tracks_added_n', selection.size), 'success');
         closeModal();
       }
     },
@@ -85,14 +83,14 @@ async function downloadAll() {
   if (!playlist.value) return;
   const todo = playlist.value.trackIds
     .map((id) => lib.findById(id))
-    .filter((t) => t && !t.file && !lib.libraryDownloads.has(t.id));
+    .filter((tr) => tr && !tr.file && !lib.libraryDownloads.has(tr.id));
   if (todo.length === 0) {
-    showToast('Toutes les pistes sont déjà hors ligne', 'success');
+    showToast(t('toast.all_already_offline'), 'success');
     return;
   }
-  showToast(`${todo.length} piste${todo.length > 1 ? 's' : ''} en téléchargement…`);
-  for (const t of todo) {
-    lib.downloadTrack(t.id);
+  showToast(t('toast.dl_started_n', todo.length));
+  for (const tr of todo) {
+    lib.downloadTrack(tr.id);
     await new Promise((r) => setTimeout(r, 80));
   }
 }
@@ -102,16 +100,16 @@ async function downloadAll() {
   <section id="view-playlist" class="view active">
     <header class="hero hero-playlist" :style="{ backgroundImage: heroBg }">
       <div class="hero-content">
-        <span class="eyebrow">Playlist</span>
-        <h1>{{ playlist?.name || 'Playlist' }}</h1>
+        <span class="eyebrow">{{ t('playlist.eyebrow') }}</span>
+        <h1>{{ playlist?.name || t('playlist.eyebrow') }}</h1>
         <p class="hero-meta">
-          {{ tracks.length }} titre{{ tracks.length > 1 ? 's' : '' }}<span v-if="totalDuration"> · {{ fmtDuration(totalDuration) }}</span>
+          {{ t('common.tracks', tracks.length) }}<span v-if="totalDuration"> · {{ fmtDuration(totalDuration) }}</span>
         </p>
       </div>
     </header>
     <div class="page-body">
       <div class="action-row">
-        <button class="play-circle" title="Tout lire" @click="playAll">
+        <button class="play-circle" :title="t('playlist.play_all')" @click="playAll">
           <svg viewBox="0 0 24 24" fill="currentColor">
             <path d="M8 5v14l11-7z" />
           </svg>
@@ -120,20 +118,20 @@ async function downloadAll() {
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
           </svg>
-          Ajouter
+          {{ t('playlist.add') }}
         </button>
         <button class="secondary-btn" @click="downloadAll">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M12 4v12m0 0l-5-5m5 5l5-5M5 20h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
-          Télécharger tout
+          {{ t('playlist.download_all') }}
         </button>
-        <button class="icon-btn round large" title="Renommer" @click="renameThis">
+        <button class="icon-btn round large" :title="t('playlist.rename')" @click="renameThis">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M12 20h9M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </button>
-        <button class="icon-btn round large danger" title="Supprimer" @click="deleteThis">
+        <button class="icon-btn round large danger" :title="t('playlist.delete')" @click="deleteThis">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
@@ -151,7 +149,7 @@ async function downloadAll() {
         />
       </ul>
       <p class="empty-state" :hidden="tracks.length > 0">
-        Cette playlist est vide. Ajoute des pistes depuis la bibliothèque.
+        {{ t('playlist.empty') }}
       </p>
     </div>
   </section>

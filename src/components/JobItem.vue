@@ -1,15 +1,16 @@
 <script setup>
 import { computed } from 'vue';
+import { t } from '@/lib/i18n';
 
 const props = defineProps({ job: { type: Object, required: true } });
 
 const isConv = computed(() => props.job.phase === 'converting');
 
 const statusLabel = computed(() => {
-  if (props.job.status === 'error') return 'Erreur';
-  if (props.job.status === 'success') return 'Terminé';
-  if (isConv.value) return 'Conversion';
-  if (props.job.phase === 'starting') return 'Démarrage';
+  if (props.job.status === 'error') return t('job.error');
+  if (props.job.status === 'success') return t('job.success');
+  if (isConv.value) return t('job.converting');
+  if (props.job.phase === 'starting') return t('job.preparing');
   return `${Math.round(props.job.progress)}%`;
 });
 

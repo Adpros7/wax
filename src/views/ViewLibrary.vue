@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useLibraryStore } from '@/stores/library';
 import { usePlayerStore } from '@/stores/player';
+import { t } from '@/lib/i18n';
 import TrackRow from '@/components/TrackRow.vue';
 
 const lib = useLibraryStore();
@@ -36,14 +37,14 @@ function skSubW() { return 30 + Math.random() * 25; }
   <section id="view-library" class="view active">
     <header class="hero hero-library">
       <div class="hero-content">
-        <span class="eyebrow">Tes favoris</span>
-        <h1>Favoris</h1>
-        <p class="hero-meta"><span>{{ favorites.length }}</span> titres</p>
+        <span class="eyebrow">{{ t('library.favorites') }}</span>
+        <h1>{{ t('library.favorites') }}</h1>
+        <p class="hero-meta">{{ t('common.tracks', favorites.length) }}</p>
       </div>
     </header>
     <div class="page-body">
       <div class="action-row">
-        <button class="play-circle" title="Tout lire" @click="playAll">
+        <button class="play-circle" :title="t('playlist.play_all')" @click="playAll">
           <svg viewBox="0 0 24 24" fill="currentColor">
             <path d="M8 5v14l11-7z" />
           </svg>
@@ -52,7 +53,7 @@ function skSubW() { return 30 + Math.random() * 25; }
           type="search"
           id="library-search"
           class="page-search"
-          placeholder="Rechercher une piste..."
+          :placeholder="t('nav.search') + '…'"
           :value="lib.search"
           @input="onSearchInput"
         />
@@ -78,7 +79,7 @@ function skSubW() { return 30 + Math.random() * 25; }
         />
       </ul>
       <p class="empty-state" :hidden="favorites.length > 0">
-        Aucun favori. Clique sur le ❤ d'un morceau pour l'ajouter ici.
+        {{ t('library.empty_hint') }}
       </p>
     </div>
   </section>

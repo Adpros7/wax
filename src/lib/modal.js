@@ -2,6 +2,7 @@
 // `promptModal` as if they were old-school imperative APIs; the
 // <ModalRoot> component subscribes and renders.
 import { reactive, markRaw } from 'vue';
+import { t } from './i18n';
 
 export const modalState = reactive({
   visible: false,
@@ -155,13 +156,13 @@ export function openLyricsModal({ artist, title, status, content }) {
   Object.assign(modalState, {
     visible: true,
     variant: 'lyrics',
-    title: 'Paroles',
+    title: t('lyrics.title'),
     lyricsArtist: artist,
     lyricsTitle: title,
     lyricsStatus: status,
     lyricsContent: content,
     confirmLabel: '',
-    cancelLabel: 'Fermer',
+    cancelLabel: t('common.close'),
     wide: true,
     component: null,
     componentProps: null,

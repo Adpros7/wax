@@ -6,19 +6,21 @@ import { computed } from 'vue';
 import { useViewStore } from '@/stores/view';
 import { useLibraryStore } from '@/stores/library';
 import { usePlayerStore } from '@/stores/player';
+import { t } from '@/lib/i18n';
 import TrackRow from '@/components/TrackRow.vue';
 
 const view = useViewStore();
 const lib = useLibraryStore();
 const player = usePlayerStore();
 
-const labels = { recent: 'Récemment ajoutées', top: 'Les plus écoutées' };
-const name = computed(() => labels[view.smartView] || 'Auto');
-const tracks = computed(() => lib.smartTracks(view.smartView));
-const queueIds = computed(() => tracks.value.map((t) => t.id));
-const meta = computed(
-  () => `${tracks.value.length} titre${tracks.value.length > 1 ? 's' : ''}`,
+const name = computed(() =>
+  view.smartView === 'recent' ? t('library.recently_added')
+  : view.smartView === 'top' ? t('library.most_played')
+  : 'Auto',
 );
+const tracks = computed(() => lib.smartTracks(view.smartView));
+const queueIds = computed(() => tracks.value.map((tr) => tr.id));
+const meta = computed(() => t('common.tracks', tracks.value.length));
 
 function playAll() {
   if (tracks.value.length === 0) return;
@@ -31,14 +33,14 @@ function playAll() {
   <section id="view-smart" class="view active">
     <header class="hero hero-smart">
       <div class="hero-content">
-        <span class="eyebrow">Playlist auto</span>
+        <span class="eyebrow">{{ t('smart.eyebrow') }}</span>
         <h1>{{ name }}</h1>
         <p class="hero-meta">{{ meta }}</p>
       </div>
     </header>
     <div class="page-body">
       <div class="action-row">
-        <button class="play-circle" title="Tout lire" @click="playAll">
+        <button class="play-circle" :title="t('playlist.play_all')" @click="playAll">
           <svg viewBox="0 0 24 24" fill="currentColor">
             <path d="M8 5v14l11-7z" />
           </svg>
@@ -54,7 +56,7 @@ function playAll() {
         />
       </ul>
       <p class="empty-state" :hidden="tracks.length > 0">
-        Aucune piste pour l'instant.
+        {{ t('smart.empty') }}
       </p>
     </div>
   </section>

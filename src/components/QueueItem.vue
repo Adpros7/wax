@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue';
 import { usePlayerStore } from '@/stores/player';
 import { useQueueDrag } from '@/composables/useDragReorder';
 import { onThumbError, onThumbLoad } from '@/lib/format';
+import { t } from '@/lib/i18n';
 
 const props = defineProps({
   track: { type: Object, required: true },
@@ -51,7 +52,7 @@ onMounted(() => {
         <rect x="12" y="0" width="3" height="14" rx="0.5" />
       </svg>
     </span>
-    <button v-else class="icon-btn qi-remove" title="Retirer" @click="removeFromQueue">
+    <button v-else class="icon-btn qi-remove" :title="t('queue.remove')" @click="removeFromQueue">
       <svg viewBox="0 0 24 24" fill="none">
         <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
       </svg>

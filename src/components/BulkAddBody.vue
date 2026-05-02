@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { fmtDuration, onThumbError, onThumbLoad } from '@/lib/format';
 import { modalState } from '@/lib/modal';
+import { t } from '@/lib/i18n';
 
 const props = defineProps({
   available: { type: Array, required: true },
@@ -20,10 +21,9 @@ const visible = computed(() => {
   );
 });
 
-const counter = computed(() => {
-  const n = props.selection.size;
-  return `${n} sélectionnée${n > 1 ? 's' : ''} sur ${props.available.length}`;
-});
+const counter = computed(() =>
+  t('common.selected_of', { n: props.selection.size, total: props.available.length }),
+);
 
 const _bumpKey = ref(0);
 
@@ -31,7 +31,7 @@ function bump() {
   // Trigger reactivity since Set mutations don't auto-track via getters here.
   _bumpKey.value++;
   modalState.confirmEnabled = props.selection.size > 0;
-  modalState.confirmLabel = props.selection.size === 0 ? 'Ajouter' : `Ajouter ${props.selection.size}`;
+  modalState.confirmLabel = props.selection.size === 0 ? t('common.add') : t('common.add_n', props.selection.size);
 }
 
 function toggleTrack(t) {
@@ -59,18 +59,18 @@ bump();
       <input
         type="text"
         class="bulk-search"
-        placeholder="Filtrer la bibliothèque..."
+        :placeholder="t('modal.bulk_filter')"
         v-model="filter"
       />
-      <button type="button" class="link-btn" @click="selectAllVisible">Tout</button>
-      <button type="button" class="link-btn" @click="selectNoneVisible">Aucun</button>
+      <button type="button" class="link-btn" @click="selectAllVisible">{{ t('common.all') }}</button>
+      <button type="button" class="link-btn" @click="selectNoneVisible">{{ t('common.none') }}</button>
     </div>
     <div class="bulk-header" style="border-bottom: none; padding-bottom: 0">
       <span class="muted">{{ counter }}</span>
       <span :hidden="true">{{ _bumpKey }}</span>
     </div>
     <ul class="bulk-track-list">
-      <p v-if="visible.length === 0" class="empty-state">Aucun résultat</p>
+      <p v-if="visible.length === 0" class="empty-state">{{ t('modal.bulk_no_results') }}</p>
       <li
         v-for="t in visible"
         :key="t.id"

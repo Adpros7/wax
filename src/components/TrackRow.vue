@@ -16,6 +16,7 @@ import {
   eqHtml,
 } from '@/lib/icons';
 import { promptModal } from '@/lib/modal';
+import { t } from '@/lib/i18n';
 import { useLibraryStore } from '@/stores/library';
 import { usePlayerStore } from '@/stores/player';
 import { useViewStore } from '@/stores/view';
@@ -84,10 +85,10 @@ async function handleRenameTitle(e) {
   e.stopPropagation();
   if (props.track.isStream) return;
   const newTitle = await promptModal({
-    title: 'Renommer',
+    title: t('prompt.rename_track.title'),
     defaultValue: props.track.title,
     placeholder: props.track.title,
-    confirmLabel: 'Renommer',
+    confirmLabel: t('prompt.rename_track.confirm'),
   });
   if (newTitle && newTitle !== props.track.title) lib.renameTrack(props.track.id, newTitle);
 }
@@ -141,12 +142,12 @@ onMounted(() => {
     @dragstart="handleDragStart"
   >
     <div class="track-num">
-      <div v-if="isCurrent && player.loading" class="track-num-spinner" aria-label="Chargement…"></div>
+      <div v-if="isCurrent && player.loading" class="track-num-spinner" :aria-label="t('common.loading')"></div>
       <div v-else-if="isCurrent" class="track-num-eq" v-html="eqHtml(player.playing)"></div>
       <span v-else class="track-num-default">{{ index != null ? index + 1 : '' }}</span>
       <button
         class="track-num-action"
-        aria-label="Lire"
+        :aria-label="t('track.play')"
         @click.stop="playThis"
         v-html="isPlaying ? ICON_PAUSE : ICON_PLAY"
       ></button>
@@ -161,7 +162,7 @@ onMounted(() => {
     <span
       v-else-if="offlineRing"
       class="track-offline-indicator is-downloading"
-      :title="offlineRing.isConv ? 'Conversion MP3…' : `Téléchargement ${offlineRing.pct}%`"
+      :title="offlineRing.isConv ? t('track.converting') : t('track.downloading_pct', offlineRing.pct)"
     >
       <svg viewBox="0 0 24 24" fill="none" :class="{ 'is-converting': offlineRing.isConv }">
         <circle class="ring-track" cx="12" cy="12" r="9" stroke-width="1.6" fill="none" />
@@ -178,7 +179,7 @@ onMounted(() => {
     <button
       v-else-if="track.file"
       class="track-offline-indicator is-done"
-      title="Retirer de l'offline"
+      :title="t('track.remove_offline')"
       @click.stop="handleRemoveDownload"
     >
       <svg class="icon-check" viewBox="0 0 24 24" fill="none">
@@ -188,60 +189,60 @@ onMounted(() => {
         <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
       </svg>
     </button>
-    <span v-else class="track-offline-indicator empty" title="Non téléchargé"></span>
+    <span v-else class="track-offline-indicator empty" :title="t('track.not_downloaded')"></span>
     <span class="track-duration">{{ fmtDuration(track.duration) }}</span>
     <div class="track-actions">
       <button
         class="icon-btn like-btn"
         :class="{ 'is-liked': fav }"
-        :title="fav ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+        :title="fav ? t('player.remove_from_favorites') : t('player.add_to_favorites')"
         @click="handleHeart"
         v-html="fav ? ICON_HEART : ICON_HEART_OUTLINE"
       ></button>
       <button
         class="icon-btn mix-btn"
-        title="Mix inspiré par ce titre"
+        :title="t('track.mix_from')"
         @click="handleMix"
         v-html="ICON_SPARKLES"
       ></button>
       <button
         v-if="!track.isStream"
         class="icon-btn"
-        title="Ajouter à une playlist"
+        :title="t('track.add_playlist')"
         @click="handleAddPlaylist"
         v-html="ICON_PLUS"
       ></button>
       <button
         v-if="!track.isStream"
         class="icon-btn"
-        title="Renommer"
+        :title="t('track.rename')"
         @click.stop="handleRenameTitle"
         v-html="ICON_EDIT"
       ></button>
       <button
         v-if="!track.isStream && !track.file && !offlineRing"
         class="icon-btn offline-btn"
-        title="Télécharger pour l'écoute hors ligne"
+        :title="t('track.download_offline')"
         @click="handleDownload"
         v-html="ICON_DOWNLOAD"
       ></button>
       <button
         class="icon-btn queue-add-btn"
-        title="Ajouter à la queue"
+        :title="t('track.add_queue')"
         @click="handleAddToQueue"
         v-html="ICON_QUEUE_ADD"
       ></button>
       <button
         v-if="removeFromPlaylist"
         class="icon-btn danger"
-        title="Retirer de la playlist"
+        :title="t('track.remove_from_playlist')"
         @click="handleRemoveFromPlaylist"
         v-html="ICON_MINUS"
       ></button>
       <button
         v-else-if="!track.isStream && view.name !== 'library'"
         class="icon-btn danger"
-        title="Supprimer"
+        :title="t('track.delete')"
         @click="handleDelete"
         v-html="ICON_TRASH"
       ></button>

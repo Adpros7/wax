@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 import { api } from '@/lib/api';
 import { showToast } from '@/lib/toast';
 import { confirmModal, promptModal } from '@/lib/modal';
+import { t } from '@/lib/i18n';
 
 export const usePlaylistsStore = defineStore('playlists', {
   state: () => ({
@@ -32,9 +33,9 @@ export const usePlaylistsStore = defineStore('playlists', {
     },
     async create() {
       const name = await promptModal({
-        title: 'Nouvelle playlist',
-        placeholder: 'Mes pépites',
-        confirmLabel: 'Créer',
+        title: t('prompt.new_playlist.title'),
+        placeholder: t('prompt.new_playlist.placeholder'),
+        confirmLabel: t('common.create'),
       });
       if (!name) return null;
       try {
@@ -44,7 +45,7 @@ export const usePlaylistsStore = defineStore('playlists', {
         });
         // Local mutation — push the new playlist; sidebar reacts instantly.
         this.items.push(playlist);
-        showToast('Playlist créée', 'success');
+        showToast(t('toast.playlist_created'), 'success');
         return playlist;
       } catch (e) {
         showToast(e.message, 'error');
@@ -54,16 +55,16 @@ export const usePlaylistsStore = defineStore('playlists', {
       const pl = this.findById(id);
       if (!pl) return false;
       const ok = await confirmModal({
-        title: `Supprimer « ${pl.name} » ?`,
-        message: 'Les pistes resteront dans ta bibliothèque, seule la playlist sera supprimée.',
-        confirmLabel: 'Supprimer',
+        title: t('confirm.delete_playlist.title', pl.name),
+        message: t('confirm.delete_playlist.message', pl.name),
+        confirmLabel: t('common.delete'),
         danger: true,
       });
       if (!ok) return false;
       try {
         await api(`/api/playlists/${id}`, { method: 'DELETE' });
         await this.fetch();
-        showToast('Playlist supprimée', 'success');
+        showToast(t('toast.playlist_deleted'), 'success');
         return true;
       } catch (e) {
         showToast(e.message, 'error');
@@ -74,9 +75,9 @@ export const usePlaylistsStore = defineStore('playlists', {
       const pl = this.findById(id);
       if (!pl) return;
       const name = await promptModal({
-        title: 'Renommer la playlist',
+        title: t('prompt.rename_playlist.title'),
         defaultValue: pl.name,
-        confirmLabel: 'Renommer',
+        confirmLabel: t('common.rename'),
       });
       if (!name) return;
       try {
@@ -85,7 +86,7 @@ export const usePlaylistsStore = defineStore('playlists', {
           body: JSON.stringify({ name }),
         });
         await this.fetch();
-        showToast('Playlist renommée', 'success');
+        showToast(t('toast.playlist_renamed'), 'success');
       } catch (e) {
         showToast(e.message, 'error');
       }
@@ -110,7 +111,7 @@ export const usePlaylistsStore = defineStore('playlists', {
         await this.fetch();
         return true;
       } catch (e) {
-        showToast('Erreur : ' + e.message, 'error');
+        showToast(t('common.error_prefix', e.message), 'error');
         return false;
       }
     },
@@ -139,7 +140,7 @@ export const usePlaylistsStore = defineStore('playlists', {
           body: JSON.stringify({ trackIds: ids }),
         });
       } catch (e) {
-        showToast('Erreur réorganisation : ' + e.message, 'error');
+        showToast(t('toast.reorder_error', e.message), 'error');
         this.fetch();
       }
     },

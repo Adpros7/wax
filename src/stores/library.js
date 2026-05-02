@@ -4,6 +4,7 @@ import { defineStore } from 'pinia';
 import { api } from '@/lib/api';
 import { showToast } from '@/lib/toast';
 import { confirmModal } from '@/lib/modal';
+import { t } from '@/lib/i18n';
 import { isStreamId } from '@/lib/format';
 import { usePlayerStore } from './player';
 import { usePlaylistsStore } from './playlists';
@@ -74,19 +75,19 @@ export const useLibraryStore = defineStore('library', {
         });
         if (!data.duplicate && data.track) {
           this.tracks.unshift(data.track);
-          if (!silent) showToast(liked ? 'Ajouté aux favoris' : 'Ajouté', 'success');
+          if (!silent) showToast(liked ? t('toast.added_to_favorites') : t('toast.added'), 'success');
         } else if (!silent) {
-          showToast('Déjà dans la bibliothèque', 'success');
+          showToast(t('toast.already_in_library'), 'success');
         }
         return data.track;
       } catch (e) {
-        if (!silent) showToast('Erreur : ' + e.message, 'error');
+        if (!silent) showToast(t('common.error_prefix', e.message), 'error');
       }
     },
     async removeByYtId(ytId) {
-      const t = this.tracks.find((t) => t.ytId === ytId);
-      if (!t) return;
-      await this.remove(t.id);
+      const track = this.tracks.find((tr) => tr.ytId === ytId);
+      if (!track) return;
+      await this.remove(track.id);
     },
     async remove(trackId) {
       try {
@@ -102,19 +103,19 @@ export const useLibraryStore = defineStore('library', {
         if (idx !== -1) this.tracks.splice(idx, 1);
         const playlists = usePlaylistsStore();
         playlists.dropTrackLocally(trackId);
-        showToast('Retiré des favoris');
+        showToast(t('toast.removed_from_favorites'));
       } catch (e) {
-        showToast('Erreur : ' + e.message, 'error');
+        showToast(t('common.error_prefix', e.message), 'error');
       }
     },
     async deleteTrack(id) {
       const track = this.findById(id);
       const ok = await confirmModal({
-        title: 'Supprimer cette piste ?',
+        title: t('confirm.delete_track.title'),
         message: track
-          ? `« ${track.title} » sera retirée de ta bibliothèque et de toutes les playlists. Le fichier MP3 sera supprimé.`
-          : 'Le fichier sera retiré de ta bibliothèque.',
-        confirmLabel: 'Supprimer',
+          ? t('confirm.delete_track.message', track.title)
+          : t('confirm.delete_track.fallback'),
+        confirmLabel: t('common.delete'),
         danger: true,
       });
       if (!ok) return;
@@ -130,24 +131,24 @@ export const useLibraryStore = defineStore('library', {
         if (idx !== -1) this.tracks.splice(idx, 1);
         const playlists = usePlaylistsStore();
         playlists.dropTrackLocally(id);
-        showToast('Piste supprimée', 'success');
+        showToast(t('toast.track_deleted'), 'success');
       } catch (e) {
-        showToast('Erreur : ' + e.message, 'error');
+        showToast(t('common.error_prefix', e.message), 'error');
       }
     },
     async toggleLike(trackId) {
-      const t = this.findById(trackId);
-      if (!t) return;
-      const newLiked = !t.liked;
-      t.liked = newLiked;
+      const track = this.findById(trackId);
+      if (!track) return;
+      const newLiked = !track.liked;
+      track.liked = newLiked;
       try {
         await api(`/api/library/${trackId}`, {
           method: 'PATCH',
           body: JSON.stringify({ liked: newLiked }),
         });
       } catch (e) {
-        t.liked = !newLiked;
-        showToast('Erreur favoris', 'error');
+        track.liked = !newLiked;
+        showToast(t('toast.fav_error'), 'error');
       }
     },
     async toggleFav(track) {
@@ -179,7 +180,7 @@ export const useLibraryStore = defineStore('library', {
         _optimistic: true,
       };
       this.tracks.unshift(optimistic);
-      showToast('Ajouté aux favoris', 'success');
+      showToast(t('toast.added_to_favorites'), 'success');
       try {
         const data = await api('/api/library/add', {
           method: 'POST',
@@ -199,32 +200,32 @@ export const useLibraryStore = defineStore('library', {
         if (data.track && idx !== -1) this.tracks.splice(idx, 1, data.track);
         else if (idx !== -1) this.tracks.splice(idx, 1);
       } catch (e) {
-        const idx = this.tracks.findIndex((t) => t._optimistic && t.ytId === track.ytId);
+        const idx = this.tracks.findIndex((tr) => tr._optimistic && tr.ytId === track.ytId);
         if (idx !== -1) this.tracks.splice(idx, 1);
-        showToast('Erreur : ' + e.message, 'error');
+        showToast(t('common.error_prefix', e.message), 'error');
       }
     },
     async _setLiked(trackId, liked) {
-      const t = this.findById(trackId);
-      if (!t) return;
-      t.liked = liked;
+      const track = this.findById(trackId);
+      if (!track) return;
+      track.liked = liked;
       try {
         await api(`/api/library/${trackId}`, {
           method: 'PATCH',
           body: JSON.stringify({ liked }),
         });
       } catch (e) {
-        t.liked = !liked;
-        showToast('Erreur favoris', 'error');
+        track.liked = !liked;
+        showToast(t('toast.fav_error'), 'error');
       }
     },
     async reorder(draggedId, targetId, above) {
-      const ids = this.tracks.map((t) => t.id).filter((id) => id !== draggedId);
+      const ids = this.tracks.map((tr) => tr.id).filter((id) => id !== draggedId);
       const targetIdx = ids.indexOf(targetId);
       if (targetIdx === -1) return;
       const insertAt = above ? targetIdx : targetIdx + 1;
       ids.splice(insertAt, 0, draggedId);
-      const byId = new Map(this.tracks.map((t) => [t.id, t]));
+      const byId = new Map(this.tracks.map((tr) => [tr.id, tr]));
       this.tracks = ids.map((id) => byId.get(id)).filter(Boolean);
       try {
         await api('/api/library/order', {
@@ -232,45 +233,45 @@ export const useLibraryStore = defineStore('library', {
           body: JSON.stringify({ trackIds: ids }),
         });
       } catch (e) {
-        showToast('Erreur : ' + e.message, 'error');
+        showToast(t('common.error_prefix', e.message), 'error');
         this.fetch();
       }
     },
     async renameTrack(trackId, newTitle) {
-      const t = this.findById(trackId);
-      if (!t) return;
-      const old = t.title;
-      t.title = newTitle;
+      const track = this.findById(trackId);
+      if (!track) return;
+      const old = track.title;
+      track.title = newTitle;
       try {
         await api(`/api/library/${trackId}`, {
           method: 'PATCH',
           body: JSON.stringify({ title: newTitle }),
         });
       } catch (e) {
-        t.title = old;
-        showToast('Erreur : ' + e.message, 'error');
+        track.title = old;
+        showToast(t('common.error_prefix', e.message), 'error');
       }
     },
     async removeDownload(trackId) {
-      const t = this.findById(trackId);
-      if (!t || !t.file) return;
+      const track = this.findById(trackId);
+      if (!track || !track.file) return;
       try {
         await api(`/api/library/${trackId}/download`, { method: 'DELETE' });
-        t.file = null;
-        showToast('Fichier local supprimé');
+        track.file = null;
+        showToast(t('toast.local_file_removed'));
       } catch (e) {
-        showToast('Erreur : ' + e.message, 'error');
+        showToast(t('common.error_prefix', e.message), 'error');
       }
     },
     async purgeOrphans() {
       const pls = usePlaylistsStore();
       const playlistTrackIds = new Set(pls.items.flatMap((pl) => pl.trackIds));
-      const orphans = this.tracks.filter((t) => t.liked === false && !playlistTrackIds.has(t.id));
+      const orphans = this.tracks.filter((tr) => tr.liked === false && !playlistTrackIds.has(tr.id));
       if (orphans.length === 0) return 0;
-      for (const t of orphans) {
+      for (const tr of orphans) {
         try {
-          await api(`/api/library/${t.id}`, { method: 'DELETE' });
-          const idx = this.tracks.findIndex((o) => o.id === t.id);
+          await api(`/api/library/${tr.id}`, { method: 'DELETE' });
+          const idx = this.tracks.findIndex((o) => o.id === tr.id);
           if (idx !== -1) this.tracks.splice(idx, 1);
         } catch {}
       }
@@ -290,7 +291,7 @@ export const useLibraryStore = defineStore('library', {
         const m2 = new Map(this.libraryDownloads);
         m2.delete(trackId);
         this.libraryDownloads = m2;
-        showToast('Erreur : ' + e.message, 'error');
+        showToast(t('common.error_prefix', e.message), 'error');
       }
     },
     _listenLibraryProgress(jobId, trackId) {
@@ -308,15 +309,15 @@ export const useLibraryStore = defineStore('library', {
           this.libraryDownloads = m;
           es.close();
           // Mark the local track as offline-ready instead of full re-fetch.
-          const t = this.findById(trackId);
-          if (t) t.file = `/audio/${trackId}.mp3`;
-          showToast('Disponible hors ligne', 'success');
+          const track = this.findById(trackId);
+          if (track) track.file = `/audio/${trackId}.mp3`;
+          showToast(t('toast.available_offline'), 'success');
         } else if (data.type === 'error') {
           const m = new Map(this.libraryDownloads);
           m.delete(trackId);
           this.libraryDownloads = m;
           es.close();
-          showToast('Erreur téléchargement : ' + data.error, 'error');
+          showToast(t('toast.dl_error', data.error), 'error');
         }
         if (typeof data.ytdlpActive === 'number') {
           this.ytdlpStatus = { active: data.ytdlpActive, queued: data.ytdlpQueued ?? 0 };

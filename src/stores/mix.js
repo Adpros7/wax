@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 import { api } from '@/lib/api';
 import { showToast } from '@/lib/toast';
 import { promptModal } from '@/lib/modal';
+import { t } from '@/lib/i18n';
 import { useStreamsStore } from './streams';
 import { useLibraryStore } from './library';
 import { usePlaylistsStore } from './playlists';
@@ -15,15 +16,15 @@ export const useMixStore = defineStore('mix', {
     async streamFrom(track, onSwitchView) {
       const ytId = track.ytId;
       if (!ytId) {
-        showToast("Pas d'ID YouTube pour cette piste", 'error');
+        showToast(t('toast.mix_no_ytid'), 'error');
         return;
       }
       const streams = useStreamsStore();
-      showToast('Génération du mix…');
+      showToast(t('toast.mix_generating'));
       try {
         const { tracks: mixTracks } = await api(`/api/mix/${ytId}`);
         if (!mixTracks.length) {
-          showToast('Mix vide', 'error');
+          showToast(t('toast.mix_empty'), 'error');
           return;
         }
         const queueIds = [];
@@ -52,7 +53,7 @@ export const useMixStore = defineStore('mix', {
         // the first track the user actually clicks. We rely on player
         // look-ahead (next track in queue) once playback starts.
       } catch (e) {
-        showToast('Erreur mix : ' + e.message, 'error');
+        showToast(t('toast.mix_error', e.message), 'error');
       }
     },
     close() {
@@ -62,10 +63,10 @@ export const useMixStore = defineStore('mix', {
       if (!this.current) return;
       const defaultName = `Mix · ${this.current.sourceTitle.slice(0, 60)}`;
       const name = await promptModal({
-        title: 'Sauvegarder le mix',
-        label: 'Le mix devient une playlist permanente. Les pistes restent en streaming (pas de téléchargement). Tu pourras toujours en télécharger une par une après.',
+        title: t('prompt.save_mix.title'),
+        label: t('prompt.save_mix.help'),
         defaultValue: defaultName,
-        confirmLabel: 'Sauvegarder',
+        confirmLabel: t('common.save'),
       });
       if (!name) return;
 
@@ -76,7 +77,7 @@ export const useMixStore = defineStore('mix', {
           body: JSON.stringify({ name }),
         }));
       } catch (e) {
-        showToast('Erreur : ' + e.message, 'error');
+        showToast(t('common.error_prefix', e.message), 'error');
         return;
       }
 
@@ -139,16 +140,13 @@ export const useMixStore = defineStore('mix', {
           }
         } catch (e) {
           console.error('[mix.save] bulk-add failed:', e);
-          showToast('Erreur ajout : ' + e.message, 'error');
+          showToast(t('toast.mix_add_error', e.message), 'error');
         }
       }
 
       this.current = null;
       if (onSwitchView) onSwitchView(playlist.id);
-      showToast(
-        `« ${name} » sauvegardée · ${trackIds.length} piste${trackIds.length > 1 ? 's' : ''} (${added} nouvelle${added > 1 ? 's' : ''} en favoris)`,
-        'success',
-      );
+      showToast(t('toast.mix_saved_n', trackIds.length), 'success');
     },
   },
 });

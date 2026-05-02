@@ -2,6 +2,7 @@
 import { api } from '@/lib/api';
 import { showToast } from '@/lib/toast';
 import { openLyricsModal, patchLyricsModal } from '@/lib/modal';
+import { t } from '@/lib/i18n';
 import { usePlayerStore } from '@/stores/player';
 import { useLibraryStore } from '@/stores/library';
 
@@ -21,7 +22,7 @@ export async function showLyrics() {
   const trackId = player.queue[player.index];
   const track = lib.findById(trackId);
   if (!track) {
-    showToast('Aucune piste en lecture', 'error');
+    showToast(t('toast.no_track_playing'), 'error');
     return;
   }
   const { artist, title } = guessArtistAndTitle(track);
@@ -29,15 +30,16 @@ export async function showLyrics() {
     artist,
     title,
     status: 'loading',
-    content: 'Recherche des paroles…',
+    content: t('lyrics.loading'),
   });
   try {
     const data = await api(`/api/lyrics?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}`);
     patchLyricsModal({ lyricsStatus: 'ok', lyricsContent: data.lyrics });
   } catch (e) {
-    const msg = e.message === 'Paroles introuvables'
-      ? `Pas de paroles trouvées pour cette piste.\n\nL'extraction artiste/titre depuis YouTube est imparfaite — la piste « ${artist} — ${title} » n'a peut-être pas été reconnue par lyrics.ovh.`
-      : `Erreur : ${e.message}`;
+    const isNotFound = e.message === 'Paroles introuvables' || /not found/i.test(e.message);
+    const msg = isNotFound
+      ? t('lyrics.not_found_detail', { artist, title })
+      : t('common.error_prefix', e.message);
     patchLyricsModal({ lyricsStatus: 'error', lyricsContent: msg });
   }
 }

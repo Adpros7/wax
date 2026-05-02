@@ -9,6 +9,7 @@ import { showToast } from '@/lib/toast';
 import { ICON_HEART, ICON_HEART_OUTLINE } from '@/lib/icons';
 import { useVisualizer } from '@/composables/useVisualizer';
 import { showLyrics } from '@/composables/useLyrics';
+import { t } from '@/lib/i18n';
 
 const player = usePlayerStore();
 const lib = useLibraryStore();
@@ -56,7 +57,11 @@ function toggleLike() {
 function toggleCrossfade() {
   prefs.crossfadeEnabled = !prefs.crossfadeEnabled;
   prefs.save();
-  showToast(prefs.crossfadeEnabled ? 'Crossfade activé (3 s)' : 'Crossfade désactivé');
+  showToast(
+    prefs.crossfadeEnabled
+      ? t('player.crossfade_on', prefs.crossfadeDuration)
+      : t('player.crossfade_off'),
+  );
 }
 
 // CSS slider fill: the inputs use --pct to render the leading colored part.
@@ -99,7 +104,7 @@ watch(
           @error="onThumbError"
           @load="onThumbLoad"
         />
-        <div v-if="player.loading" class="player-thumb-spinner" aria-label="Chargement…"></div>
+        <div v-if="player.loading" class="player-thumb-spinner" :aria-label="t('player.loading')"></div>
       </div>
       <div class="player-info">
         <div class="player-title">{{ player.currentTrack?.title || '' }}</div>
@@ -112,7 +117,7 @@ watch(
           class="icon-btn"
           id="player-shuffle"
           :class="{ active: player.shuffle }"
-          title="Aléatoire"
+          :title="t('player.shuffle')"
           @click="player.toggleShuffle"
         >
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -125,7 +130,7 @@ watch(
             />
           </svg>
         </button>
-        <button class="icon-btn" id="player-prev" title="Précédent" @click="player.prev">
+        <button class="icon-btn" id="player-prev" :title="t('player.previous')" @click="player.prev">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M19 5v14l-12-7zM6 5h2v14H6z" />
           </svg>
@@ -134,7 +139,7 @@ watch(
           class="icon-btn play-btn"
           id="player-toggle"
           :class="{ 'is-playing': player.playing }"
-          title="Lecture/Pause"
+          :title="t('player.play_pause')"
           @click="player.togglePlay"
         >
           <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -144,7 +149,7 @@ watch(
             <path d="M6 4h4v16H6zM14 4h4v16h-4z" />
           </svg>
         </button>
-        <button class="icon-btn" id="player-next" title="Suivant" @click="player.next">
+        <button class="icon-btn" id="player-next" :title="t('player.next')" @click="player.next">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M5 5v14l12-7zM18 5h-2v14h2z" />
           </svg>
@@ -153,7 +158,7 @@ watch(
           class="icon-btn"
           id="player-repeat"
           :class="{ active: player.repeat !== 'off' }"
-          :title="`Répéter : ${player.repeat === 'off' ? 'non' : player.repeat === 'one' ? 'piste' : 'tout'}`"
+          :title="t('player.repeat', t(player.repeat === 'off' ? 'player.repeat_off' : player.repeat === 'one' ? 'player.repeat_one' : 'player.repeat_all'))"
           @click="player.cycleRepeat"
         >
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -186,11 +191,11 @@ watch(
         class="icon-btn"
         id="player-like"
         :class="{ 'is-liked': liked }"
-        :title="liked ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+        :title="liked ? t('player.remove_from_favorites') : t('player.add_to_favorites')"
         @click="toggleLike"
         v-html="liked ? ICON_HEART : ICON_HEART_OUTLINE"
       ></button>
-      <button class="icon-btn" id="player-lyrics" title="Paroles" @click="showLyrics">
+      <button class="icon-btn" id="player-lyrics" :title="t('player.lyrics')" @click="showLyrics">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path
             d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"
@@ -205,7 +210,7 @@ watch(
         class="icon-btn"
         id="player-crossfade"
         :class="{ active: prefs.crossfadeEnabled }"
-        title="Crossfade"
+        :title="t('player.crossfade')"
         @click="toggleCrossfade"
       >
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -222,7 +227,7 @@ watch(
         class="icon-btn"
         id="player-queue"
         :class="{ active: player.queueOpen }"
-        title="File d'attente"
+        :title="t('player.queue')"
         @click="player.toggleQueueOpen"
       >
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -239,7 +244,7 @@ watch(
         class="icon-btn"
         id="player-mute"
         :class="{ active: player.muted }"
-        title="Muet"
+        :title="t('player.mute')"
         @click="player.toggleMute"
       >
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">

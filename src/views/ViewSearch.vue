@@ -7,6 +7,7 @@ import { usePlayerStore } from '@/stores/player';
 import { useJobsStore } from '@/stores/jobs';
 import { fmtDuration, isYoutubeUrl, onThumbError, onThumbLoad } from '@/lib/format';
 import { showToast } from '@/lib/toast';
+import { t } from '@/lib/i18n';
 import JobItem from '@/components/JobItem.vue';
 import TrackRow from '@/components/TrackRow.vue';
 import DiscoverGrid from '@/components/DiscoverGrid.vue';
@@ -26,9 +27,9 @@ const submitVisible = computed(() => {
 const submitLabel = computed(() => {
   if (search.playlistSource) {
     const n = search.playlistSelection.size;
-    return n ? `Télécharger ${n}` : 'Télécharger';
+    return n ? t('common.download_n', n) : t('common.download');
   }
-  return 'Télécharger';
+  return t('common.download');
 });
 
 const onUrlChange = makeSearchHandler(search);
@@ -54,10 +55,10 @@ async function submit() {
   if (search.playlistSource) {
     const selected = search.playlistSource.tracks.filter((t) => search.playlistSelection.has(t.id));
     if (selected.length === 0) {
-      showToast('Aucune piste sélectionnée', 'error');
+      showToast(t('toast.no_track_selected'), 'error');
       return;
     }
-    showToast(`Lancement de ${selected.length} téléchargement${selected.length > 1 ? 's' : ''}...`);
+    showToast(t('toast.dl_started_n', selected.length));
     for (const t of selected) {
       jobs.startDownload(t.url, quality, { title: t.title });
       await new Promise((r) => setTimeout(r, 100));
@@ -107,9 +108,9 @@ function togglePlaylistTrack(id) { search.togglePlaylistTrack(id); }
   <section id="view-download" class="view active">
     <header class="hero hero-download">
       <div class="hero-content">
-        <span class="eyebrow">Recherche</span>
-        <h1>Que veux-tu écouter&nbsp;?</h1>
-        <p class="hero-meta">Tape un titre, un artiste</p>
+        <span class="eyebrow">{{ t('search.eyebrow') }}</span>
+        <h1>{{ t('search.hero') }}</h1>
+        <p class="hero-meta">{{ t('search.subtitle') }}</p>
       </div>
     </header>
     <div class="page-body">
@@ -127,7 +128,7 @@ function togglePlaylistTrack(id) { search.togglePlaylistTrack(id); }
           <input
             type="text"
             id="url-input"
-            placeholder="Chase Atlantic, Daft Punk Around the World, ou une URL..."
+            :placeholder="t('search.placeholder')"
             :value="search.inputValue"
             @input="handleInput"
             required
@@ -148,7 +149,7 @@ function togglePlaylistTrack(id) { search.togglePlaylistTrack(id); }
             type="button"
             id="preview-clear"
             class="icon-btn ghost"
-            aria-label="Effacer"
+            :aria-label="t('search.clear')"
             @click="clearInput"
           >
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -163,14 +164,14 @@ function togglePlaylistTrack(id) { search.togglePlaylistTrack(id); }
           :hidden="!search.playlistSource"
         >
           <div class="playlist-source-header">
-            <strong>Playlist YouTube</strong>
+            <strong>{{ t('search.youtube_playlist') }}</strong>
             <span class="muted">
               <span id="playlist-selected">{{ search.playlistSelection.size }}</span> /
               <span id="playlist-total">{{ search.playlistSource?.tracks.length || 0 }}</span>
             </span>
             <div class="batch-actions">
-              <button type="button" class="link-btn" @click="selectAllPlaylist">Tout</button>
-              <button type="button" class="link-btn" @click="selectNonePlaylist">Aucun</button>
+              <button type="button" class="link-btn" @click="selectAllPlaylist">{{ t('common.all') }}</button>
+              <button type="button" class="link-btn" @click="selectNonePlaylist">{{ t('common.none') }}</button>
             </div>
           </div>
           <ul id="playlist-source-list" class="playlist-source-list">
@@ -226,7 +227,7 @@ function togglePlaylistTrack(id) { search.togglePlaylistTrack(id); }
           <path d="M32 32l8 8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
           <path d="M18 22h8M22 18v8" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
         </svg>
-        <p>Aucun résultat pour « {{ search.inputValue }} »</p>
+        <p>{{ t('search.no_results', search.inputValue) }}</p>
       </div>
 
       <ul

@@ -8,6 +8,7 @@ import { ICON_HEART, ICON_NOTE, ICON_CLOCK, ICON_CHART } from '@/lib/icons';
 import { gradientFromString, onThumbError, onThumbLoad } from '@/lib/format';
 import { openSettings } from './settings';
 import { showToast } from '@/lib/toast';
+import { t } from '@/lib/i18n';
 
 const library = useLibraryStore();
 const playlists = usePlaylistsStore();
@@ -22,8 +23,8 @@ const items = computed(() => {
   out.push({
     kind: 'library',
     active: view.name === 'library',
-    name: 'Favoris',
-    sub: `${library.favorites.length} titre${library.favorites.length > 1 ? 's' : ''}`,
+    name: t('library.favorites'),
+    sub: t('common.tracks', library.favorites.length),
     iconHtml: ICON_HEART,
     iconClass: 'liked-icon',
   });
@@ -33,8 +34,8 @@ const items = computed(() => {
     kind: 'smart',
     smartView: 'recent',
     active: view.name === 'smart' && view.smartView === 'recent',
-    name: 'Récemment ajoutés',
-    sub: `${recentCount} titre${recentCount !== 1 ? 's' : ''}`,
+    name: t('library.recently_added'),
+    sub: t('common.tracks', recentCount),
     iconHtml: ICON_CLOCK,
     iconClass: '',
   });
@@ -44,8 +45,8 @@ const items = computed(() => {
       kind: 'smart',
       smartView: 'top',
       active: view.name === 'smart' && view.smartView === 'top',
-      name: 'Les plus écoutés',
-      sub: `${topCount} titre${topCount !== 1 ? 's' : ''}`,
+      name: t('library.most_played'),
+      sub: t('common.tracks', topCount),
       iconHtml: ICON_CHART,
       iconClass: '',
     });
@@ -61,7 +62,7 @@ const items = computed(() => {
       id: pl.id,
       active: view.name === 'playlist' && view.selectedPlaylistId === pl.id,
       name: pl.name,
-      sub: `Playlist · ${tracks.length} titre${tracks.length > 1 ? 's' : ''}`,
+      sub: t('library.playlist_subtitle', tracks.length),
       cover,
       gradient: cover ? null : gradientFromString(pl.name).replace('180deg', '135deg'),
       iconHtml: cover ? null : ICON_NOTE,
@@ -110,16 +111,16 @@ async function handleDrop(event, playlistId) {
 
   // Check duplicate before resolving stream → library (avoids unnecessary add)
   if (!data.isStream) {
-    if (pl.trackIds.includes(data.id)) { showToast('Déjà dans cette playlist'); return; }
+    if (pl.trackIds.includes(data.id)) { showToast(t('toast.already_in_playlist')); return; }
   } else {
-    const existing = library.tracks.find((t) => t.ytId === data.ytId);
-    if (existing && pl.trackIds.includes(existing.id)) { showToast('Déjà dans cette playlist'); return; }
+    const existing = library.tracks.find((tr) => tr.ytId === data.ytId);
+    if (existing && pl.trackIds.includes(existing.id)) { showToast(t('toast.already_in_playlist')); return; }
   }
 
   const trackId = await resolveLibraryId(data, false);
   if (!trackId) return;
   await playlists.addTrack(playlistId, trackId);
-  showToast('Ajouté à la playlist', 'success');
+  showToast(t('toast.added_to_playlist'), 'success');
 }
 
 function onDragOver(event, item) {
@@ -146,13 +147,13 @@ async function handleFavDrop(event) {
   if (data.isStream) {
     const st = streams.get(data.id);
     if (!st) return;
-    if (library.isFavorite(st)) { showToast('Déjà dans les favoris'); return; }
+    if (library.isFavorite(st)) { showToast(t('toast.already_in_favorites')); return; }
     library.toggleFav(st);
   } else {
-    const t = library.findById(data.id);
-    if (!t) return;
-    if (library.isFavorite(t)) { showToast('Déjà dans les favoris'); return; }
-    library._setLiked(t.id, true);
+    const tr = library.findById(data.id);
+    if (!tr) return;
+    if (library.isFavorite(tr)) { showToast(t('toast.already_in_favorites')); return; }
+    library._setLiked(tr.id, true);
   }
 }
 
@@ -182,7 +183,7 @@ function selectDownload() {
             <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2.2" />
             <path d="M21 21l-4.5-4.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
           </svg>
-          <span>Rechercher</span>
+          <span>{{ t('nav.search') }}</span>
         </a>
         <a class="sidebar-link" id="settings-link" @click="openSettings">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -195,7 +196,7 @@ function selectDownload() {
               stroke-linejoin="round"
             />
           </svg>
-          <span>Paramètres</span>
+          <span>{{ t('nav.settings') }}</span>
         </a>
       </nav>
     </div>
@@ -206,20 +207,19 @@ function selectDownload() {
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M3 5h18M3 12h18M3 19h12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
           </svg>
-          <span>Ta bibliothèque</span>
+          <span>{{ t('nav.your_library') }}</span>
         </button>
         <span
           v-if="library.ytdlpStatus.active > 0 || library.ytdlpStatus.queued > 0"
           class="ytdlp-badge"
-          :title="`${library.ytdlpStatus.active} en cours · ${library.ytdlpStatus.queued} en attente`"
         >
           {{ library.ytdlpStatus.active + library.ytdlpStatus.queued }}
         </span>
         <button
           class="icon-btn"
           id="create-playlist-btn"
-          title="Nouvelle playlist"
-          aria-label="Nouvelle playlist"
+          :title="t('nav.new_playlist')"
+          :aria-label="t('nav.new_playlist')"
           @click="createPlaylist"
         >
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
