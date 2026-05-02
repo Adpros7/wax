@@ -47,8 +47,6 @@ const messages = {
 
     // Library / smart
     'library.favorites': 'Favorites',
-    'library.recently_added': 'Recently added',
-    'library.most_played': 'Most played',
     'library.playlist_subtitle': (n) => `Playlist · ${n} track${n === 1 ? '' : 's'}`,
 
     // Search view
@@ -73,12 +71,6 @@ const messages = {
     'mix.save': 'Save',
     'mix.close_title': 'Close mix',
     'mix.unsaved': 'unsaved',
-
-    // Smart view
-    'smart.recent.hero': 'Recently added',
-    'smart.top.hero': 'Most played',
-    'smart.eyebrow': 'Auto playlist',
-    'smart.empty': 'No tracks yet.',
 
     // Discover
     'discover.title': 'Discover',
@@ -322,8 +314,6 @@ const messages = {
 
     // Library / smart
     'library.favorites': 'Favoris',
-    'library.recently_added': 'Récemment ajoutés',
-    'library.most_played': 'Les plus écoutés',
     'library.playlist_subtitle': (n) => `Playlist · ${n} titre${n > 1 ? 's' : ''}`,
 
     // Search view
@@ -347,12 +337,6 @@ const messages = {
     'mix.save': 'Sauvegarder',
     'mix.close_title': 'Fermer le mix',
     'mix.unsaved': 'non sauvegardé',
-
-    // Smart view
-    'smart.recent.hero': 'Récemment ajoutés',
-    'smart.top.hero': 'Les plus écoutés',
-    'smart.eyebrow': 'Playlist auto',
-    'smart.empty': "Aucune piste pour l'instant.",
 
     // Discover
     'discover.title': 'Découverte',

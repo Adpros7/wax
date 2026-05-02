@@ -1,5 +1,4 @@
-// Library: tracks the user has favorited or downloaded. Maps to
-// public/js/library.js plus its smart-view helpers.
+// Library: tracks the user has favorited or downloaded.
 import { defineStore } from 'pinia';
 import { api } from '@/lib/api';
 import { showToast } from '@/lib/toast';
@@ -324,20 +323,6 @@ export const useLibraryStore = defineStore('library', {
         }
       };
       es.onerror = () => es.close();
-    },
-    smartTracks(key) {
-      if (key === 'recent') {
-        return [...this.tracks]
-          .sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0))
-          .slice(0, 50);
-      }
-      if (key === 'top') {
-        return [...this.tracks]
-          .filter((t) => (t.playCount || 0) > 0)
-          .sort((a, b) => (b.playCount || 0) - (a.playCount || 0))
-          .slice(0, 50);
-      }
-      return [];
     },
   },
 });

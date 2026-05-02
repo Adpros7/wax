@@ -60,21 +60,29 @@ function onCrossfadeDuration(e) {
   prefs.save();
 }
 
-// Backup / restore
+// Backup / restore — progress refs hold a 0-1 fraction during the op,
+// `null` when idle. `exporting` / `importing` are derived booleans.
 const importInput = ref(null);
-const exporting = ref(false);
-const importing = ref(false);
+const exportProgress = ref(null);
+const importProgress = ref(null);
+const exporting = computed(() => exportProgress.value !== null);
+const importing = computed(() => importProgress.value !== null);
 
 async function doExport() {
-  exporting.value = true;
+  exportProgress.value = 0;
   try {
-    const data = await exportToFile();
-    const n = (data.library?.length || 0) + (data.playlists?.length || 0);
-    showToast(t('settings.data.export_done', { tracks: data.library.length, playlists: data.playlists.length }), 'success');
+    const data = await exportToFile({
+      onProgress: (p) => { exportProgress.value = p; },
+    });
+    showToast(t('settings.data.export_done', {
+      tracks: data.library.length,
+      playlists: data.playlists.length,
+    }), 'success');
   } catch (e) {
     showToast(t('common.error_prefix', e.message), 'error');
   } finally {
-    exporting.value = false;
+    // Hold the bar visibly full for a beat so it doesn't just flash by.
+    setTimeout(() => { exportProgress.value = null; }, 250);
   }
 }
 
@@ -86,9 +94,10 @@ async function onImportFile(e) {
   const file = e.target.files?.[0];
   e.target.value = ''; // allow re-picking the same file
   if (!file) return;
-  importing.value = true;
+  importProgress.value = 0;
   try {
     const data = await readImportFile(file);
+    importProgress.value = 0.05;
     const ok = await confirmModal({
       title: t('settings.data.import_confirm.title'),
       message: t('settings.data.import_confirm.message', {
@@ -98,8 +107,13 @@ async function onImportFile(e) {
       confirmLabel: t('settings.data.import'),
       danger: true,
     });
-    if (!ok) return;
-    const result = await importFromData(data);
+    if (!ok) {
+      importProgress.value = null;
+      return;
+    }
+    const result = await importFromData(data, {
+      onProgress: (p) => { importProgress.value = p; },
+    });
     showToast(t('settings.data.import_done', {
       tracks: result.tracks ?? data.library.length,
       playlists: result.playlists ?? data.playlists.length,
@@ -109,10 +123,20 @@ async function onImportFile(e) {
     setTimeout(() => window.location.reload(), 800);
   } catch (e) {
     showToast(t('common.error_prefix', e.message), 'error');
-  } finally {
-    importing.value = false;
+    importProgress.value = null;
   }
 }
+
+const activeProgress = computed(() => {
+  if (exporting.value) return exportProgress.value;
+  if (importing.value) return importProgress.value;
+  return null;
+});
+const progressLabel = computed(() => {
+  if (exporting.value) return t('settings.data.exporting');
+  if (importing.value) return t('settings.data.importing');
+  return '';
+});
 
 // Orphans
 const orphanCount = computed(() => {
@@ -278,7 +302,7 @@ async function purge() {
           <button
             type="button"
             class="settings-clean-btn"
-            :disabled="exporting"
+            :disabled="exporting || importing"
             @click="doExport"
           >
             {{ exporting ? t('settings.data.exporting') : t('settings.data.export') }}
@@ -286,7 +310,7 @@ async function purge() {
           <button
             type="button"
             class="settings-clean-btn"
-            :disabled="importing"
+            :disabled="exporting || importing"
             @click="pickImport"
           >
             {{ importing ? t('settings.data.importing') : t('settings.data.import') }}
@@ -298,6 +322,14 @@ async function purge() {
             style="display: none"
             @change="onImportFile"
           />
+        </div>
+        <div v-if="activeProgress !== null" class="settings-progress">
+          <div class="progress-bar">
+            <div class="progress-fill" :style="{ width: (activeProgress * 100) + '%' }"></div>
+          </div>
+          <span class="settings-progress-label">
+            {{ progressLabel }} {{ Math.round(activeProgress * 100) }}%
+          </span>
         </div>
       </div>
 

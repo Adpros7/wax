@@ -4,7 +4,7 @@ import { useLibraryStore } from '@/stores/library';
 import { usePlaylistsStore } from '@/stores/playlists';
 import { useViewStore } from '@/stores/view';
 import { useStreamsStore } from '@/stores/streams';
-import { ICON_HEART, ICON_NOTE, ICON_CLOCK, ICON_CHART } from '@/lib/icons';
+import { ICON_HEART, ICON_NOTE } from '@/lib/icons';
 import { gradientFromString, onThumbError, onThumbLoad } from '@/lib/format';
 import { openSettings } from './settings';
 import { showToast } from '@/lib/toast';
@@ -28,29 +28,6 @@ const items = computed(() => {
     iconHtml: ICON_HEART,
     iconClass: 'liked-icon',
   });
-  // Smart playlists
-  const recentCount = library.smartTracks('recent').length;
-  out.push({
-    kind: 'smart',
-    smartView: 'recent',
-    active: view.name === 'smart' && view.smartView === 'recent',
-    name: t('library.recently_added'),
-    sub: t('common.tracks', recentCount),
-    iconHtml: ICON_CLOCK,
-    iconClass: '',
-  });
-  const topCount = library.smartTracks('top').length;
-  if (topCount > 0) {
-    out.push({
-      kind: 'smart',
-      smartView: 'top',
-      active: view.name === 'smart' && view.smartView === 'top',
-      name: t('library.most_played'),
-      sub: t('common.tracks', topCount),
-      iconHtml: ICON_CHART,
-      iconClass: '',
-    });
-  }
   // User playlists
   for (const pl of playlists.items) {
     const tracks = pl.trackIds
@@ -73,7 +50,6 @@ const items = computed(() => {
 
 function clickItem(item) {
   if (item.kind === 'library') view.switchTo('library');
-  else if (item.kind === 'smart') view.switchTo('smart', item.smartView);
   else if (item.kind === 'playlist') view.switchTo('playlist', item.id);
 }
 

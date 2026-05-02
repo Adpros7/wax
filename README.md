@@ -10,7 +10,6 @@
 - **Stream by default** — every track plays via `yt-dlp` URL extraction with 5h URL cache, hover prefetch, and "look-ahead one" on queue progression so transitions feel instant
 - **Discover** — landing screen surfaces a YouTube Mix inspired by a random favorite, or the YouTube "Today's Top Hits" playlist when the library is empty; auto-refreshes when favorites change
 - **Favoris vs Bibliothèque** — Favoris (heart-toggle) is the visible playlist; tracks added by saving a Mix or referenced by playlists live silently in the library so playlists keep working without polluting your favorites; "Nettoyer" button in Settings purges orphans
-- **Smart playlists** — auto "Récemment ajoutés" and "Les plus écoutés" surfaced in the sidebar
 - **Download for offline** — per-track button converts a streamed favorite into a local MP3 320 kbps with circular progress ring; the ✓ indicator turns into × on hover to remove the local file
 - **Playlists** — create, rename, delete, drag-reorder, bulk-add modal, "Tout télécharger" cascade
 - **Drag-and-drop** — drag any track (search result, Découverte card, library row) onto a sidebar playlist or onto Favoris to add it; duplicates are blocked with a toast

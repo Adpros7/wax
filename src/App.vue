@@ -9,7 +9,6 @@ import ViewSearch from './views/ViewSearch.vue';
 import ViewLibrary from './views/ViewLibrary.vue';
 import ViewPlaylist from './views/ViewPlaylist.vue';
 import ViewMix from './views/ViewMix.vue';
-import ViewSmart from './views/ViewSmart.vue';
 
 import { usePrefsStore } from './stores/prefs';
 import { useAccentStore } from './stores/accent';
@@ -81,7 +80,6 @@ onMounted(async () => {
       <div class="content">
         <ViewSearch v-show="currentView === 'download'" />
         <ViewLibrary v-show="currentView === 'library'" />
-        <ViewSmart v-show="currentView === 'smart'" />
         <ViewMix v-show="currentView === 'mix'" />
         <ViewPlaylist v-show="currentView === 'playlist'" />
       </div>

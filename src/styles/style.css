@@ -1894,12 +1894,6 @@ input[type="range"]:hover::-moz-range-track {
 .queue-item:hover .qi-remove { opacity: 1; }
 .qi-remove svg { width: 14px; height: 14px; }
 
-/* Sidebar smart playlists separator */
-.library-item.is-smart .lib-icon {
-  background: linear-gradient(135deg, var(--accent-dark), var(--accent-bright));
-  color: #fff;
-}
-
 /* Like button on track row */
 .track-actions .icon-btn.like-btn.is-liked { color: var(--accent-bright); }
 .track-actions .icon-btn.like-btn.is-liked svg { fill: var(--accent-bright); }
@@ -2188,6 +2182,26 @@ input[type="range"]:hover::-moz-range-track {
   color: var(--text);
 }
 .settings-clean-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* Inline progress bar shown under the export/import row while running. */
+.settings-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+.settings-progress .progress-bar {
+  flex: 1;
+  height: 6px;
+}
+.settings-progress-label {
+  font-size: 0.78rem;
+  color: var(--text-soft);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  min-width: 96px;
+  text-align: right;
+}
 
 /* Crossfade toggle row */
 .settings-toggle-row {
