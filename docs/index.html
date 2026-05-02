@@ -414,6 +414,20 @@
   }
   .copy-btn:hover { color: var(--text); border-color: rgba(255, 255, 255, 0.2); background: var(--surface-2); }
   .copy-btn.copied { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .hero-install-note {
+    margin-top: 10px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .hero-install-note code {
+    font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+    font-size: 0.85em;
+    color: var(--text-soft);
+    background: rgba(255, 255, 255, 0.04);
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
 
   /* ---------------- stack badges --------------- */
   .stack {
@@ -528,6 +542,9 @@ npm install
 npm run dev</code></pre>
           <button type="button" class="copy-btn" data-target="install-code" aria-label="Copy install commands">Copy</button>
         </div>
+        <p class="hero-install-note">
+          The app launches automatically. To relaunch later: <code>cd wax &amp;&amp; npm run dev</code>
+        </p>
       </div>
     </div>
 
