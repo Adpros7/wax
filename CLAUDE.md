@@ -243,3 +243,20 @@ The project went through **two major refactors**:
 - He values **performance** and **polish**: small UX issues (alignment, perceived latency, jank) get flagged.
 - He often iterates: small change → review → next ask. Don't over-engineer.
 - When something is broken, he describes the symptom (not always the cause). Investigate before fixing.
+
+## Workflow: "commit et pousse" / "commit and push"
+
+When Dylan asks to commit & push (any phrasing — "commit et pousse", "commit and push", "push", "envoie ça", etc.), do all four of these in **one** flow before pushing:
+
+1. **Bump the version** in both `package.json` and `flutter/pubspec.yaml` (keep them in sync).
+   - Default: **patch** bump (1.0.0 → 1.0.1) — bug fixes, polish, doc-only changes, refactors with no user-visible impact.
+   - **Minor** bump (1.0.0 → 1.1.0) — new feature, new endpoint, new view, new public store action.
+   - **Major** bump (1.x → 2.0.0) — only when Dylan asks for it explicitly, or for a breaking change he flagged.
+   - For Flutter, append `+N` build code (`1.0.1+2`) — increment monotonically.
+2. **Update `README.md`** if the change is user-visible (new feature, removed feature, new install/build step, new dep). Skip if it's an internal refactor or a tiny fix.
+3. **Update `CLAUDE.md`** if architecture, files, stores, key flows, gotchas, or active TODOs shifted. Skip for cosmetic-only fixes.
+4. **Then commit and push** in a single commit that includes the version bump + doc updates alongside the actual code change.
+
+Don't ask permission for any of the four — just do them. If a step is genuinely a no-op (e.g. CLAUDE.md needs no change), say so in one line in the reply.
+
+Commit message: imperative, French or English (match the codebase — recent history is mixed). Do NOT prepend `vX.Y.Z:` — the version lives in `package.json`, not in commit subjects.
