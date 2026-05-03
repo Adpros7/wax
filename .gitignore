@@ -3,6 +3,7 @@ node_modules/
 *.log
 library/audio/
 library/previews/
+library/covers/
 library/library.json
 library/playlists.json
 
