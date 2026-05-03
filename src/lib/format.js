@@ -57,6 +57,37 @@ export function onThumbError(e) {
   img.src = PLACEHOLDER_THUMB;
 }
 
+// YouTube titles follow loose conventions like "Artist - Song (Official
+// Video)" — extract the artist + the cleaned song title. Used by the artist
+// view + future album logic. Falls back to the channel uploader for the
+// artist when no separator is found in the title.
+const TITLE_CRUFT = /\s*[\[\(](?:slowed|reverb(?:ed)?|reverb|lyrics?|official|audio|video|hq|4k|hd|remaster(?:ed)?|m\/v|mv|live|acoustic|cover|extended|radio edit|version|sped[ -]?up|nightcore|8d|3d|bass boosted|visualizer|color(?:ed)? coded)[^)\]]*[\]\)]/gi;
+
+export function parseTrackTitle(track) {
+  if (!track) return { artist: '', song: '' };
+  const raw = (track.title || '').trim();
+  const cleaned = raw.replace(TITLE_CRUFT, '').replace(/\s+/g, ' ').trim();
+  // Most YouTube music titles use " - ", " – ", " — ", or " | " between
+  // the artist and the song. Match the FIRST occurrence so featuring
+  // artists in the suffix stay attached to the artist column ("A ft. B - X").
+  const m = cleaned.match(/^(.+?)\s*[-–—|]\s*(.+)$/);
+  if (m) return { artist: m[1].trim(), song: m[2].trim() };
+  return { artist: track.uploader || '', song: cleaned };
+}
+
+// Cluster artist names that differ only by suffix (TheWeekndVEVO, The Weeknd
+// Official, the weeknd) into a single key — case-insensitive, alphanumerics
+// only, common YouTube channel suffixes stripped. Used to match tracks under
+// one canonical artist regardless of how the channel is named.
+export function normalizeArtistKey(name) {
+  return (name || '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s*[-—]\s*topic$/i, '')      // "Artist - Topic" auto-channels
+    .replace(/\s*(vevo|official|music|tv|hd|records?)$/i, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
 // Kept as an exported no-op so existing `@load="onThumbLoad"` bindings
 // across templates don't break. The server-side cover endpoint takes care
 // of detecting and rejecting YouTube's grey placeholder, so no client-side

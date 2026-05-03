@@ -29,6 +29,7 @@
 - **Offline-first covers** — every cover goes through `/api/cover/:ytId`: served from `library/covers/<ytId>.jpg` if cached, otherwise fetched once from YouTube (maxres → hq → mq → default), saved to disk, and served. Once cached, covers work fully offline. Tracks downloaded for offline pre-fetch their cover automatically. A neutral SVG placeholder kicks in if every variant 404s
 - **Loading shimmer + spinners** — shimmer skeleton cards on Découverte / Top, spinners on tracks during buffering — no more "did my click work?" anxiety
 - **In-app rename** — pencil button on every library track opens a prompt modal to retitle (PATCH `/api/library/:id`)
+- **Artist pages** — every track row's artist name is clickable; navigates to a view that lists every library track by that artist. Names are parsed from the YouTube title (`"Artist - Song"` patterns), with fallback to the channel uploader. Channel suffixes like `VEVO` / `Official` / `- Topic` are normalized so the same artist regrouped across channels lands on one page
 - **yt-dlp queue indicator** — pulsing badge in the sidebar shows active + queued background downloads
 - **Persisted state** — queue, position, shuffle/repeat, volume, theme, EQ all restored on reload
 - **Bilingual UI** — English / Français picker in Settings; switches on the fly without a reload (every label, toast, modal, hero, theme name)

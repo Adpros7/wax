@@ -9,6 +9,7 @@ import ViewSearch from './views/ViewSearch.vue';
 import ViewLibrary from './views/ViewLibrary.vue';
 import ViewPlaylist from './views/ViewPlaylist.vue';
 import ViewMix from './views/ViewMix.vue';
+import ViewArtist from './views/ViewArtist.vue';
 
 import { usePrefsStore } from './stores/prefs';
 import { useAccentStore } from './stores/accent';
@@ -82,6 +83,7 @@ onMounted(async () => {
         <ViewLibrary v-show="currentView === 'library'" />
         <ViewMix v-show="currentView === 'mix'" />
         <ViewPlaylist v-show="currentView === 'playlist'" />
+        <ViewArtist v-show="currentView === 'artist'" />
       </div>
     </main>
     <Player />

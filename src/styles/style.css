@@ -1328,6 +1328,15 @@ button.track-offline-indicator { cursor: pointer; }
   text-overflow: ellipsis;
   margin-top: 2px;
 }
+.track-artist-link {
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.track-artist-link:hover {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 .track-duration {
   font-size: 0.85rem;
   color: var(--text-soft);

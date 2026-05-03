@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue';
-import { fmtDuration, onThumbError, onThumbLoad } from '@/lib/format';
+import { fmtDuration, onThumbError, onThumbLoad, parseTrackTitle } from '@/lib/format';
 import {
   ICON_PLAY,
   ICON_PAUSE,
@@ -45,6 +45,16 @@ const isCurrent = computed(() => player.queue[player.index] === props.track.id);
 const isPlaying = computed(() => isCurrent.value && player.playing);
 const fav = computed(() => lib.isFavorite(props.track));
 const dl = computed(() => lib.libraryDownloads.get(props.track.id));
+// Parsed artist (cleaned up from "Artist - Song (Official Video)" titles).
+// Falls back to uploader when no separator is found, then to '' if uploader
+// is empty too. Used for the clickable artist link below the track title.
+const parsedArtist = computed(() => parseTrackTitle(props.track).artist);
+
+function openArtistView(e) {
+  e.stopPropagation();
+  if (!parsedArtist.value) return;
+  view.switchTo('artist', parsedArtist.value);
+}
 
 function playThis() {
   if (isCurrent.value) player.togglePlay();
@@ -155,7 +165,15 @@ onMounted(() => {
     <img class="track-thumb" :src="track.thumbnail || ''" alt="" loading="lazy" @error="onThumbError" @load="onThumbLoad" />
     <div class="track-meta">
       <div class="track-title">{{ track.title }}</div>
-      <div class="track-sub">{{ track.uploader || '' }}</div>
+      <div class="track-sub">
+        <a
+          v-if="parsedArtist"
+          class="track-artist-link"
+          :title="t('artist.go_to', parsedArtist)"
+          @click="openArtistView"
+        >{{ parsedArtist }}</a>
+        <span v-else>{{ track.uploader || '' }}</span>
+      </div>
     </div>
     <!-- Persistent offline indicator (always visible) -->
     <span v-if="track.isStream" class="track-offline-indicator empty"></span>

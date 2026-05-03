@@ -4,7 +4,7 @@ import { api } from '@/lib/api';
 import { showToast } from '@/lib/toast';
 import { confirmModal } from '@/lib/modal';
 import { t } from '@/lib/i18n';
-import { isStreamId } from '@/lib/format';
+import { isStreamId, parseTrackTitle, normalizeArtistKey } from '@/lib/format';
 import { usePlayerStore } from './player';
 import { usePlaylistsStore } from './playlists';
 import { useStreamsStore } from './streams';
@@ -32,6 +32,17 @@ export const useLibraryStore = defineStore('library', {
           t.title.toLowerCase().includes(q) ||
           (t.uploader || '').toLowerCase().includes(q),
       );
+    },
+    // Returns every library track whose parsed artist matches the given key
+    // (after normalization). Caller passes either the raw display name or
+    // the normalized key — we normalize both sides before comparing.
+    tracksByArtist: (state) => (artist) => {
+      const key = normalizeArtistKey(artist);
+      if (!key) return [];
+      return state.tracks.filter((tr) => {
+        const parsed = parseTrackTitle(tr);
+        return normalizeArtistKey(parsed.artist) === key;
+      });
     },
   },
   actions: {

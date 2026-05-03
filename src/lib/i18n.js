@@ -132,6 +132,11 @@ const messages = {
     'playlist.play_all': 'Play all',
     'playlist.empty': 'This playlist is empty. Add tracks from your library.',
 
+    // Artist view
+    'artist.eyebrow': 'Artist',
+    'artist.go_to': (name) => `View all tracks by ${name}`,
+    'artist.empty': 'No tracks by this artist in your library yet.',
+
     // Settings — tabs
     'settings.title': 'Settings',
     'settings.tabs.appearance': 'Theme',
@@ -409,6 +414,11 @@ const messages = {
     'playlist.delete': 'Supprimer',
     'playlist.play_all': 'Tout lire',
     'playlist.empty': 'Cette playlist est vide. Ajoute des pistes depuis la bibliothèque.',
+
+    // Artist view
+    'artist.eyebrow': 'Artiste',
+    'artist.go_to': (name) => `Voir toutes les pistes de ${name}`,
+    'artist.empty': "Aucune piste de cet artiste dans ta bibliothèque pour l'instant.",
 
     // Settings — tabs
     'settings.title': 'Paramètres',
