@@ -26,7 +26,7 @@
 - **3-band equalizer** — bass / mid / treble (±12 dB) via Web Audio BiquadFilters, persisted in prefs
 - **Themes** — 22 presets in Settings, grouped by family. **14 sombres** (Sombre, Ardoise, Minuit, Vinyle, Moka, Bordeaux, Forêt, Studio, Dracula, Nord, Tokyo Night, Rose Pine, Gruvbox, Néon) and **8 clairs** (Papier, Lin, Crème, Sable, Pêche, Menthe, Glacier, Lavande). Crème is the default light: soft warm cream, low-glare for long sessions. Each theme drives its own modal/pill backgrounds so the app stays cohesive end-to-end. All persist across sessions.
 - **Audio-reactive visualizer** on the currently-playing track row (FFT split into bass / mid / high; sqrt curve for sensitivity)
-- **Full-HD covers** — fetches `maxresdefault.jpg` (1280×720) with double fallback (`onerror` + `naturalWidth ≤ 120` placeholder detection) → graceful downgrade to `hqdefault` then `mqdefault`
+- **Offline-first covers** — every cover goes through `/api/cover/:ytId`: served from `library/covers/<ytId>.jpg` if cached, otherwise fetched once from YouTube (maxres → hq → mq → default), saved to disk, and served. Once cached, covers work fully offline. Tracks downloaded for offline pre-fetch their cover automatically. A neutral SVG placeholder kicks in if every variant 404s
 - **Loading shimmer + spinners** — shimmer skeleton cards on Découverte / Top, spinners on tracks during buffering — no more "did my click work?" anxiety
 - **In-app rename** — pencil button on every library track opens a prompt modal to retitle (PATCH `/api/library/:id`)
 - **yt-dlp queue indicator** — pulsing badge in the sidebar shows active + queued background downloads

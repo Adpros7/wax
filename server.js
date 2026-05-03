@@ -86,11 +86,13 @@ const PUBLIC_DIR = process.env.WAX_PUBLIC_DIR || path.join(ROOT, 'public');
 const LIBRARY_DIR = process.env.WAX_LIBRARY_DIR || path.join(ROOT, 'library');
 const AUDIO_DIR = path.join(LIBRARY_DIR, 'audio');
 const PREVIEW_DIR = path.join(LIBRARY_DIR, 'previews');
+const COVERS_DIR = path.join(LIBRARY_DIR, 'covers');
 const LIBRARY_FILE = path.join(LIBRARY_DIR, 'library.json');
 const PLAYLISTS_FILE = path.join(LIBRARY_DIR, 'playlists.json');
 
 fs.mkdirSync(AUDIO_DIR, { recursive: true });
 fs.mkdirSync(PREVIEW_DIR, { recursive: true });
+fs.mkdirSync(COVERS_DIR, { recursive: true });
 if (!fs.existsSync(LIBRARY_FILE)) fs.writeFileSync(LIBRARY_FILE, '[]');
 if (!fs.existsSync(PLAYLISTS_FILE)) fs.writeFileSync(PLAYLISTS_FILE, '[]');
 
@@ -107,17 +109,90 @@ function readJson(file) {
 function writeJson(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
-// Upgrade any stored mqdefault/hqdefault thumbnail to maxresdefault.
-// maxresdefault isn't guaranteed for every video, but the client handles
-// the 404 fallback. We never rewrite library.json — upgrade is on-read only.
-function upgradeThumb(url) {
-  if (!url) return url;
-  return url.replace(/\/(mq|hq|sd|)default\.jpg(\?.*)?$/, '/maxresdefault.jpg');
+
+// ----------------------------------------------------------------
+// Cover art pipeline.
+//
+// All track thumbnails — library, search, mix, trending, discover — are
+// served through `/api/cover/:ytId`. The endpoint:
+//   1. Returns the cached file from `library/covers/<ytId>.jpg` if it
+//      exists (works fully offline once cached).
+//   2. Otherwise fetches from YouTube, trying maxres → hq → mq → default,
+//      caches the result on disk, and serves it.
+//   3. Returns 404 if every variant fails — the client then falls back
+//      to a local SVG placeholder.
+//
+// Tracks downloaded for offline (POST /api/library/:id/download) also
+// trigger a cover fetch as a side-effect, so the cover lives on disk
+// alongside the MP3 and the user can browse covers without network.
+// ----------------------------------------------------------------
+
+function coverUrl(ytId) {
+  return `/api/cover/${ytId}`;
 }
+
+// Download a cover from YouTube, try variants in order, cache to disk.
+// Returns the local path on success, null on failure.
+function fetchCoverFromYouTube(ytId) {
+  const dest = path.join(COVERS_DIR, `${ytId}.jpg`);
+  return new Promise((resolve) => {
+    const variants = ['maxresdefault', 'hqdefault', 'mqdefault', 'default'];
+    let i = 0;
+    const tryNext = () => {
+      if (i >= variants.length) return resolve(null);
+      const variant = variants[i++];
+      const url = `https://i.ytimg.com/vi/${ytId}/${variant}.jpg`;
+      https.get(url, (r) => {
+        if (r.statusCode !== 200) {
+          r.resume();
+          return tryNext();
+        }
+        const chunks = [];
+        r.on('data', (c) => chunks.push(c));
+        r.on('end', () => {
+          const buf = Buffer.concat(chunks);
+          // YouTube returns a 120×90 grey placeholder (~3-4 KB) for
+          // missing maxres variants. Reject and try the next size down.
+          if (variant === 'maxresdefault' && buf.length < 5000) return tryNext();
+          try {
+            fs.writeFileSync(dest, buf);
+            resolve(dest);
+          } catch {
+            resolve(null);
+          }
+        });
+        r.on('error', () => tryNext());
+      }).on('error', () => tryNext());
+    };
+    tryNext();
+  });
+}
+
+app.get('/api/cover/:ytId', async (req, res) => {
+  const ytId = req.params.ytId;
+  if (!/^[A-Za-z0-9_-]{11}$/.test(ytId)) {
+    return res.status(400).end();
+  }
+  const localPath = path.join(COVERS_DIR, `${ytId}.jpg`);
+  if (fs.existsSync(localPath)) {
+    res.setHeader('Cache-Control', 'public, max-age=604800');
+    return res.sendFile(localPath);
+  }
+  const cached = await fetchCoverFromYouTube(ytId);
+  if (cached) {
+    res.setHeader('Cache-Control', 'public, max-age=604800');
+    return res.sendFile(cached);
+  }
+  // All variants failed — client falls back to its placeholder.
+  res.status(404).end();
+});
 
 const getLibrary = () => readJson(LIBRARY_FILE).map(t => ({
   ...t,
-  thumbnail: upgradeThumb(t.thumbnail),
+  // Funnel every thumbnail through the local cover endpoint — works offline
+  // once cached, gives us a single fallback path. Tracks without a ytId
+  // (rare, defensive) keep their stored URL as-is.
+  thumbnail: t.ytId ? coverUrl(t.ytId) : t.thumbnail,
 }));
 const saveLibrary = (lib) => writeJson(LIBRARY_FILE, lib);
 const getPlaylists = () => readJson(PLAYLISTS_FILE);
@@ -169,7 +244,7 @@ app.get('/api/mix/:videoId', (req, res) => {
         uploader: uploader === 'NA' ? '' : (uploader || ''),
         duration: parseFloat(duration) || 0,
         url: `https://www.youtube.com/watch?v=${vid}`,
-        thumbnail: `https://i.ytimg.com/vi/${vid}/maxresdefault.jpg`,
+        thumbnail: coverUrl(vid),
       };
     });
     res.json({ tracks });
@@ -205,10 +280,14 @@ app.get('/api/info', async (req, res) => {
   if (!YT_REGEX.test(url)) return res.status(400).json({ error: 'URL invalide' });
   try {
     const data = await fetchJson(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+    // Extract the ytId from the URL or oembed thumbnail so the client hits
+    // our local /api/cover endpoint instead of YouTube's CDN directly.
+    const m = url.match(/[?&]v=([A-Za-z0-9_-]{11})|youtu\.be\/([A-Za-z0-9_-]{11})|shorts\/([A-Za-z0-9_-]{11})/);
+    const ytId = m ? (m[1] || m[2] || m[3]) : null;
     res.json({
       title: data.title,
       author: data.author_name,
-      thumbnail: upgradeThumb(data.thumbnail_url),
+      thumbnail: ytId ? coverUrl(ytId) : data.thumbnail_url,
       isPlaylist: /[?&]list=/.test(url) && !/[?&]v=/.test(url),
     });
   } catch (e) {
@@ -334,7 +413,7 @@ app.get('/api/trending', (req, res) => {
         uploader: uploader === 'NA' ? '' : (uploader || ''),
         duration: parseFloat(duration) || 0,
         url: `https://www.youtube.com/watch?v=${id}`,
-        thumbnail: `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`,
+        thumbnail: coverUrl(id),
       };
     });
     res.json({ tracks });
@@ -368,7 +447,7 @@ app.get('/api/search', (req, res) => {
         uploader: uploader === 'NA' ? '' : (uploader || ''),
         duration: parseFloat(duration) || 0,
         url: `https://www.youtube.com/watch?v=${id}`,
-        thumbnail: `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`,
+        thumbnail: coverUrl(id),
       };
     });
     res.json({ results });
@@ -401,7 +480,7 @@ app.get('/api/playlist-info', (req, res) => {
         uploader: uploader === 'NA' ? '' : (uploader || ''),
         duration: parseFloat(duration) || 0,
         url: `https://www.youtube.com/watch?v=${id}`,
-        thumbnail: `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`,
+        thumbnail: coverUrl(id),
       };
     });
     res.json({ tracks: items });
@@ -515,7 +594,10 @@ function startJob(job) {
         title: safeTitle,
         uploader: info.uploader || info.channel || '',
         duration: info.duration || 0,
-        thumbnail: info.thumbnail || (info.id ? `https://i.ytimg.com/vi/${info.id}/maxresdefault.jpg` : ''),
+        // Store the local cover URL when we know the ytId (works offline,
+        // single fallback path). Falls back to whatever yt-dlp returned
+        // (usually a YouTube CDN URL) when no id is available.
+        thumbnail: info.id ? coverUrl(info.id) : (info.thumbnail || ''),
         ytId: info.id || '',
         url: info.webpage_url || job.url,
         bitrate: job.bitrate,
@@ -527,6 +609,11 @@ function startJob(job) {
     }
 
     try { fs.unlinkSync(infoJsonFile); } catch {}
+
+    // Side-effect: pre-cache the cover so the downloaded track has its
+    // artwork available offline alongside the MP3. Fire-and-forget — the
+    // download is already "ready" without waiting on the cover.
+    if (track.ytId) fetchCoverFromYouTube(track.ytId).catch(() => {});
 
     job.status = 'ready';
     job.progress = 100;
@@ -638,10 +725,10 @@ app.post('/api/import', express.json({ limit: '32mb' }), (req, res) => {
 // — those are UI settings, not data.
 app.post('/api/wipe', (req, res) => {
   try {
-    const removed = { audio: 0, previews: 0 };
+    const removed = { audio: 0, previews: 0, covers: 0 };
     saveLibrary([]);
     savePlaylists([]);
-    for (const [dir, key] of [[AUDIO_DIR, 'audio'], [PREVIEW_DIR, 'previews']]) {
+    for (const [dir, key] of [[AUDIO_DIR, 'audio'], [PREVIEW_DIR, 'previews'], [COVERS_DIR, 'covers']]) {
       if (!fs.existsSync(dir)) continue;
       for (const file of fs.readdirSync(dir)) {
         try {
@@ -668,7 +755,7 @@ app.post('/api/library/add', (req, res) => {
     title: String(title).slice(0, 200),
     uploader: uploader || '',
     duration: parseFloat(duration) || 0,
-    thumbnail: thumbnail || `https://i.ytimg.com/vi/${ytId}/maxresdefault.jpg`,
+    thumbnail: thumbnail || coverUrl(ytId),
     ytId,
     url: url || `https://www.youtube.com/watch?v=${ytId}`,
     file: null,

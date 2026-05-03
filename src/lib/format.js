@@ -38,23 +38,30 @@ export function debounce(fn, ms) {
   return wrapped;
 }
 
-// maxresdefault doesn't exist for every video. YouTube sometimes returns a
-// 120×90 grey placeholder with HTTP 200 instead of a 404, so onerror alone
-// isn't enough — onThumbLoad also checks naturalWidth and falls back.
+// All thumbnails go through the server's `/api/cover/:ytId` endpoint, which
+// already cycles maxres → hq → mq → default and caches successful hits to
+// disk. If every variant fails, the endpoint returns 404 and we fall back
+// to a local SVG placeholder. The client used to do that variant cycling
+// itself; now it's a single hop on the server.
+const PLACEHOLDER_THUMB = '/placeholder-cover.svg';
+
 export function onThumbError(e) {
-  const src = e.target.src || '';
-  if (src.includes('maxresdefault')) e.target.src = src.replace('maxresdefault', 'hqdefault');
-  else if (src.includes('hqdefault')) e.target.src = src.replace('hqdefault', 'mqdefault');
+  const img = e.target;
+  if (!img) return;
+  // Avoid an infinite loop if the placeholder itself somehow fails. We
+  // check `src` directly (not a dataset flag) because long-lived <img>
+  // elements like the player thumb get a new src on every track change —
+  // a sticky flag would prevent the placeholder from re-applying after
+  // the user navigates to a track whose cover also fails.
+  if (img.src.endsWith('placeholder-cover.svg')) return;
+  img.src = PLACEHOLDER_THUMB;
 }
 
-export function onThumbLoad(e) {
-  const img = e.target;
-  const src = img.src || '';
-  // naturalWidth ≤ 120 means YouTube served its generic grey placeholder.
-  if (src.includes('maxresdefault') && img.naturalWidth <= 120) {
-    img.src = src.replace('maxresdefault', 'hqdefault');
-  }
-}
+// Kept as an exported no-op so existing `@load="onThumbLoad"` bindings
+// across templates don't break. The server-side cover endpoint takes care
+// of detecting and rejecting YouTube's grey placeholder, so no client-side
+// post-load detection is needed anymore.
+export function onThumbLoad() {}
 
 export function gradientFromString(str) {
   let hash = 0;
