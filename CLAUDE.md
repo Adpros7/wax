@@ -259,3 +259,5 @@ When the user asks to commit & push (any phrasing — "commit et pousse", "commi
 Don't ask permission for any of the four — just do them. If a step is genuinely a no-op (e.g. CLAUDE.md needs no change), say so in one line in the reply.
 
 Commit message: imperative, French or English (match the codebase — recent history is mixed). Do NOT prepend `vX.Y.Z:` — the version lives in `package.json`, not in commit subjects.
+
+TALK IN ENGLISH DO EVERYTHING IN ENGLISH

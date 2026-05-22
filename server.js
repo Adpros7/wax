@@ -198,6 +198,114 @@ const saveLibrary = (lib) => writeJson(LIBRARY_FILE, lib);
 const getPlaylists = () => readJson(PLAYLISTS_FILE);
 const savePlaylists = (pls) => writeJson(PLAYLISTS_FILE, pls);
 
+const DEFAULT_PLAYLIST_ID = 'default-dump';
+const DEFAULT_PLAYLIST_NAME = 'Default';
+const DEFAULT_PLAYLIST_TRACKS = [
+  { title: 'Bad Liar', artists: 'Imagine Dragons', ytId: 'bWuHp0YXjKk', uploader: '7clouds', duration: 260 },
+  { title: 'East Coast', artists: 'Connor Price, Nic D, GRAHAM', ytId: '3GNWjMitECs', uploader: 'BagOnly', duration: 163 },
+  { title: 'Spinnin', artists: 'Connor Price, Bens', ytId: '9vjDJrAkLHY', uploader: 'Connor Price', duration: 112 },
+  { title: 'Drop', artists: 'Connor Price, Zensery', ytId: 'pUROT2f6azM', uploader: 'Connor Price', duration: 135 },
+  { title: 'Buddy', artists: 'Connor Price, Hoodie Allen', ytId: 'eskl_eJhTS8', uploader: 'Connor Price', duration: 126 },
+  { title: 'Violet', artists: 'Connor Price, Killa', ytId: 'GcvSJudQbVs', uploader: 'Connor Price', duration: 124 },
+  { title: 'Dynamite', artists: 'BTS', ytId: 'kK29Q_LpVUw', uploader: '7clouds K-pop', duration: 206 },
+  { title: 'Natural', artists: 'Imagine Dragons', ytId: 'Oqz2QNV58fw', uploader: '7clouds', duration: 187 },
+  { title: 'Whatever It Takes', artists: 'Imagine Dragons', ytId: 'UsuF4jJ4sgA', uploader: '7clouds', duration: 198 },
+  { title: 'Believer', artists: 'Imagine Dragons', ytId: 'W0DM5lcj6mw', uploader: '7clouds', duration: 205 },
+  { title: 'Still Hot', artists: 'Nic D, Connor Price', ytId: 'POLyaPHTlz4', uploader: 'Connor Price and Nic D', duration: 135 },
+  { title: 'Bones', artists: 'Imagine Dragons', ytId: 'ZNsPYmkSPeI', uploader: '7clouds', duration: 163 },
+  { title: 'Stereo Hearts (feat. Adam Levine)', artists: 'Gym Class Heroes, Adam Levine', ytId: '1r38Q1fFYc8', uploader: '7clouds', duration: 216 },
+  { title: 'Enemy (with JID)', artists: 'Imagine Dragons, JID, Arcane, League of Legends', ytId: 'hHB1Ikzfpmc', uploader: '7clouds', duration: 171 },
+  { title: 'Legends Never Die', artists: 'League of Legends, Against The Current', ytId: 'r_jjQAA8oic', uploader: '7clouds', duration: 236 },
+  { title: 'Sharks', artists: 'Imagine Dragons', ytId: '7j7twuejxvU', uploader: 'ImagineDragons', duration: 196 },
+  { title: "I Ain't Worried", artists: 'OneRepublic', ytId: 'BgECarzs6zs', uploader: '7clouds', duration: 149 },
+  { title: 'Demons', artists: 'Imagine Dragons', ytId: 'MA0aCUxItYA', uploader: '7clouds', duration: 175 },
+  { title: 'We Will Rock You (Remastered 2011)', artists: 'Queen', ytId: '-tJYN-eG1zk', uploader: 'Queen Official', duration: 135 },
+  { title: 'Trendsetter', artists: 'Connor Price, Haviah Mighty', ytId: 'e6k3pXPYfQc', uploader: 'Connor Price', duration: 146 },
+  { title: 'Ramenez la coupe a la maison', artists: 'Vegedream', ytId: 'a_OZw1oRZzs', uploader: '7clouds France', duration: 236 },
+  { title: 'Sunroof', artists: 'Nicky Youre, dazy', ytId: 'cWUt8UZunOE', uploader: '7clouds', duration: 160 },
+  { title: 'Counting Stars', artists: 'OneRepublic', ytId: 'mgT0N3tMP74', uploader: '7clouds', duration: 258 },
+  { title: 'Wellerman (Sea Shanty)', artists: 'Nathan Evans', ytId: 'bNQSMTNSnUw', uploader: '7clouds', duration: 153 },
+  { title: 'Sultans of Swing', artists: 'Dire Straits', ytId: '89Qg_gYqkys', uploader: 'RHINO', duration: 351 },
+  { title: 'United States of Whatever', artists: 'Liam Lynch', ytId: 'KEjHJXd8bpU', uploader: "Liam Lynch's Lynchland", duration: 92 },
+  { title: 'Blinding Lights', artists: 'The Weeknd', ytId: 'XwxLwG2_Sxk', uploader: '7clouds', duration: 200 },
+  { title: 'SPLAT', artists: 'Connor Price', ytId: 'z5T_XOm4lPg', uploader: 'Connor Price', duration: 129 },
+  { title: 'Customs', artists: 'Connor Price, Harsh Likhari', ytId: 'us9CSqyvLVQ', uploader: 'Connor Price', duration: 140 },
+  { title: 'UP!', artists: 'Forrest Frank, Connor Price', ytId: 'BSBM0gFmyuE', uploader: 'Forrest Frank', duration: 137 },
+  { title: 'Miss You', artists: 'Oliver Tree, Robin Schulz', ytId: 'w9UFKAHQIH8', uploader: '7clouds', duration: 203 },
+  { title: "Straight A's", artists: 'Connor Price', ytId: 'TQYGAdzAZP4', uploader: 'Connor Price', duration: 132 },
+  { title: 'DIP', artists: 'Connor Price, Kazuo', ytId: 'UOkcxRGKD8w', uploader: 'Connor Price', duration: 124 },
+  { title: 'Unstoppable', artists: 'Sia', ytId: 'oS07d8Gr4tw', uploader: '7clouds', duration: 216 },
+  { title: 'FE!N (feat. Playboi Carti)', artists: 'Travis Scott, Playboi Carti', ytId: 'nT5NIGAPLv4', uploader: '7clouds Trap', duration: 192 },
+  { title: 'Hate You', artists: 'Powfu, BAUWZ, Nito Onna', ytId: 'vTOvx8qvZXY', uploader: 'Poylow', duration: 180 },
+  { title: 'Overwhelmed (Ryan Mack Remix)', artists: 'Ryan Mack', ytId: 'BcMwQPYYKec', uploader: 'Ryan Mack', duration: 105 },
+  { title: 'Godzilla (feat. Juice WRLD)', artists: 'Eminem, Juice WRLD', ytId: 'S2cPMa6fRq8', uploader: '7clouds', duration: 211 },
+  { title: 'Uptown Funk (feat. Bruno Mars)', artists: 'Mark Ronson, Bruno Mars', ytId: 'W8FUmkw3a4U', uploader: '7clouds', duration: 269 },
+  { title: 'Skyfall', artists: 'Adele', ytId: '-q6gUoJgZCM', uploader: '7clouds', duration: 285 },
+  { title: 'Count on Me', artists: 'Bruno Mars', ytId: '6k8cpUkKK4c', uploader: 'Bruno Mars', duration: 193 },
+  { title: 'I Want It That Way', artists: 'Backstreet Boys', ytId: 'qjlVAsvQLM8', uploader: '7clouds', duration: 212 },
+  { title: 'Ievan Polkka - Club Remix', artists: 'The Kiffness, Bilal Goregen', ytId: 'CAyWN9ba9J8', uploader: 'The Kiffness', duration: 202 },
+  { title: 'Danger Zone', artists: 'Kenny Loggins', ytId: 'CRGbe95EQyI', uploader: '7clouds Rock', duration: 217 },
+  { title: 'Sapphire', artists: 'Ed Sheeran', ytId: 'PZZRr04Q7zM', uploader: '7clouds', duration: 179 },
+  { title: 'Hunter Vantaar', artists: 'Anirudh Ravichander, Sidharth Basrur, Arivu, Shakthisree Gopalan', ytId: 'XYTrUjPuA6I', uploader: 'Sony Music South', duration: 193 },
+  { title: 'Naacho Naacho (from RRR)', artists: 'Vishal Mishra, Rahul Sipligunj, M.M. Keeravaani', ytId: 'sAzlWScHTc4', uploader: 'T-Series', duration: 275 },
+  { title: 'Viva La Vida', artists: 'Coldplay', ytId: 'dvgZkm1xWPE', uploader: 'Coldplay', duration: 243 },
+  { title: 'Memories', artists: 'Maroon 5', ytId: 'o2DXt11SMNI', uploader: '7clouds', duration: 185 },
+  { title: 'Butter', artists: 'BTS', ytId: 'o9mLyHtSLjk', uploader: 'BTS - Topic', duration: 165 },
+  { title: 'Beat It', artists: 'Michael Jackson', ytId: 'Aj4B5nx7ap8', uploader: 'Jazz7Clouds', duration: 255 },
+  { title: 'MIC Drop', artists: 'BTS', ytId: 'e95-Gaj2iXM', uploader: 'BANGTANTV', duration: 239 },
+  { title: 'Shape of You', artists: 'Ed Sheeran', ytId: 'liTfD88dbCo', uploader: '7clouds', duration: 232 },
+  { title: 'Chuck Taylor', artists: 'Connor Price, SIRI', ytId: 'FNI2RJzPMV4', uploader: 'Connor Price', duration: 139 },
+  { title: 'Globe Cypher', artists: 'Connor Price, Killa, SIRI, Bens, Kazuo, K. Keeley', ytId: 'a4DAyd0-zcQ', uploader: 'Connor Price', duration: 293 },
+  { title: 'Never Gonna Give You Up', artists: 'Rick Astley', ytId: 'dQw4w9WgXcQ', uploader: 'Rick Astley', duration: 214 },
+  { title: 'BACK2BACK', artists: 'STRLGHT, ROONIN', ytId: 'NWCNpCHeMf0', uploader: 'STRLGHT', duration: 144 },
+  { title: 'Golden', artists: 'HUNTR/X, EJAE, AUDREY NUNA, REI AMI', ytId: '6iLZSv8GN84', uploader: '7clouds Sweden', duration: 195 },
+  { title: 'Soda Pop', artists: 'Saja Boys, Andrew Choi, Nekow, Danny Grimshaw', ytId: '_uu_izpVSEc', uploader: '7clouds', duration: 151 },
+  { title: "How It's Done", artists: 'HUNTR/X, EJAE, AUDREY NUNA, REI AMI', ytId: '-NxVmhXuYVg', uploader: '7clouds', duration: 177 },
+  { title: 'Takedown', artists: 'HUNTR/X, EJAE, AUDREY NUNA, REI AMI', ytId: 'QkqScfXl_DU', uploader: '7clouds', duration: 181 },
+  { title: 'Your Idol', artists: 'Saja Boys, Andrew Choi, Nekow, Danny Grimshaw', ytId: '5QIQ5QHqDbw', uploader: '7clouds', duration: 192 },
+  { title: 'What It Sounds Like', artists: 'HUNTR/X, EJAE, AUDREY NUNA, REI AMI', ytId: 'LK0jCxxgcno', uploader: '7clouds', duration: 248 },
+  { title: 'Strategy', artists: 'TWICE', ytId: 'dMFyjfwMzkw', uploader: '7clouds K-pop', duration: 169 },
+  { title: 'Baby Saja Song (KPop Demon Hunters)', artists: 'TheeOnlyJanessa', ytId: '6ThwN6K14QI', uploader: 'TheeOnlyJanessa', duration: 130 },
+  { title: 'Run', artists: 'OneRepublic', ytId: '8KqvzttqNhU', uploader: '7clouds', duration: 169 },
+  { title: 'Shut Up and Dance', artists: 'Walk The Moon', ytId: '0CGH3zm2R7c', uploader: '7clouds', duration: 197 },
+  { title: 'Levitating', artists: 'Dua Lipa', ytId: 'MMOqfBLWxH8', uploader: '7clouds', duration: 203 },
+  { title: 'Die With A Smile', artists: 'Lady Gaga, Bruno Mars', ytId: 'zgaCZOQCpp8', uploader: '7clouds', duration: 250 },
+  { title: 'Devil in Disguise', artists: 'Marino', ytId: 'PrSjlpWu0cw', uploader: 'Marino', duration: 105 },
+];
+
+function seedDefaultPlaylist() {
+  const lib = readJson(LIBRARY_FILE);
+  const pls = getPlaylists();
+  if (lib.length > 0 || pls.length > 0) return;
+
+  const now = Date.now();
+  const tracks = DEFAULT_PLAYLIST_TRACKS.map((item, index) => {
+    const id = `default-${item.ytId}`;
+    return {
+      id,
+      title: `${item.artists} - ${item.title}`,
+      uploader: item.uploader || item.artists,
+      duration: item.duration || 0,
+      thumbnail: coverUrl(item.ytId),
+      ytId: item.ytId,
+      url: `https://www.youtube.com/watch?v=${item.ytId}`,
+      file: null,
+      liked: false,
+      addedAt: now + index,
+    };
+  });
+
+  saveLibrary(tracks);
+  savePlaylists([{
+    id: DEFAULT_PLAYLIST_ID,
+    name: DEFAULT_PLAYLIST_NAME,
+    trackIds: tracks.map((track) => track.id),
+    createdAt: now,
+  }]);
+}
+
+seedDefaultPlaylist();
+
 function fetchJson(url) {
   return new Promise((resolve, reject) => {
     https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
