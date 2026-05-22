@@ -10,6 +10,7 @@ const viz = reactive({
   bass: null,
   mid: null,
   treble: null,
+  limiter: null,
   dataArray: null,
   running: false,
   frame: null,
@@ -37,10 +38,18 @@ function init() {
     viz.treble = viz.ctx.createBiquadFilter();
     viz.treble.type = 'highshelf';
     viz.treble.frequency.value = 3000;
+    // Soft limiter: prevents EQ boosts from clipping into audible distortion.
+    viz.limiter = viz.ctx.createDynamicsCompressor();
+    viz.limiter.threshold.value = -3;
+    viz.limiter.knee.value = 3;
+    viz.limiter.ratio.value = 20;
+    viz.limiter.attack.value = 0.003;
+    viz.limiter.release.value = 0.25;
     source.connect(viz.bass);
     viz.bass.connect(viz.mid);
     viz.mid.connect(viz.treble);
-    viz.treble.connect(viz.analyser);
+    viz.treble.connect(viz.limiter);
+    viz.limiter.connect(viz.analyser);
     viz.analyser.connect(viz.ctx.destination);
     viz.dataArray = new Uint8Array(viz.analyser.frequencyBinCount);
   } catch {
