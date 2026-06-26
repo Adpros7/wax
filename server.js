@@ -79,7 +79,7 @@ function getStreamUrl(videoId) {
 }
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3324;
 
 const ROOT = __dirname;
 const PUBLIC_DIR = process.env.WAX_PUBLIC_DIR || path.join(ROOT, 'public');

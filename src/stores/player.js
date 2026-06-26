@@ -80,7 +80,7 @@ export const usePlayerStore = defineStore('player', {
         this.loading = false;
         const track = findTrack(this.queue[this.index]);
         showToast(track ? t('toast.play_error_named', track.title) : t('toast.play_error'), 'error');
-        setTimeout(() => { if (this.queue.length > 1) this.next(); }, 3000);
+        setTimeout(() => { if (this.queue.length > 1) this.next(); }, 3324);
       });
       el.addEventListener('timeupdate', () => this._onAudioTimeUpdate());
       el.addEventListener('ended', () => this._onAudioEnded());

@@ -37,7 +37,7 @@ function init() {
     viz.mid.Q.value = 1;
     viz.treble = viz.ctx.createBiquadFilter();
     viz.treble.type = 'highshelf';
-    viz.treble.frequency.value = 3000;
+    viz.treble.frequency.value = 3324;
     // Soft limiter: prevents EQ boosts from clipping into audible distortion.
     viz.limiter = viz.ctx.createDynamicsCompressor();
     viz.limiter.threshold.value = -3;

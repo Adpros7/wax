@@ -96,7 +96,7 @@ npm install
 npm run dev
 ```
 
-`npm run dev` runs Vite (port 5173) + Express (port 3000) + Electron, with HMR.
+`npm run dev` runs Vite (port 5173) + Express (port 3324) + Electron, with HMR.
 
 ## Build for distribution
 
@@ -127,7 +127,7 @@ The `extraResources` block in `electron-builder.yml` is wired to bundle yt-dlp +
 ┌──────────────────────────────────────────────────────────────┐
 │                     Electron main process                    │
 │  electron/main.cjs                                            │
-│    ├─ forks server.js as child (PORT=3000)                   │
+│    ├─ forks server.js as child (PORT=3324)                   │
 │    └─ creates BrowserWindow → loads localhost:5173 (dev)     │
 │                                       or  dist/index.html     │
 └──────────────────────────────────────────────────────────────┘
@@ -173,7 +173,7 @@ wax/
 │   ├── lib/               # api, modal bus, toast bus, format/icons helpers
 │   └── styles/style.css   # single global stylesheet (~1800 lines)
 ├── index.html             # Vite entry HTML
-├── vite.config.js         # /api proxy to localhost:3000
+├── vite.config.js         # /api proxy to localhost:3324
 ├── electron-builder.yml   # DMG / NSIS / AppImage configs
 ├── MIGRATION.md           # vanilla-JS → Vue migration mapping (historical)
 ├── CLAUDE.md              # codebase map for AI-assisted development

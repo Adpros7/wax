@@ -14,7 +14,7 @@ const http = require('node:http');
 const { fork } = require('node:child_process');
 
 const isDev = process.env.NODE_ENV === 'development' || !!process.env.VITE_DEV_SERVER_URL;
-const SERVER_PORT = process.env.WAX_SERVER_PORT || '3000';
+const SERVER_PORT = process.env.WAX_SERVER_PORT || '3324';
 const VITE_URL = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173';
 
 let mainWindow = null;

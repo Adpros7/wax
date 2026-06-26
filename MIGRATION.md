@@ -16,7 +16,7 @@ modules + Express) to a modern stack that ships as `.dmg` (macOS) and
   - `WAX_PUBLIC_DIR` — overrides `<root>/public` for the legacy static mount
   - `WAX_YT_DLP` / `WAX_FFMPEG` — point at bundled binaries
 - **Electron main** (`electron/main.cjs`) forks `server.js` as a child
-  process on `127.0.0.1:3000` and loads either the Vite dev URL (in dev) or
+  process on `127.0.0.1:3324` and loads either the Vite dev URL (in dev) or
   `dist/index.html` (in prod). `preload.cjs` exposes a tiny `window.wax`
   surface for forward compat.
 - The legacy `public/{app.js,index.html,js/,style.css}` were moved to
@@ -112,7 +112,7 @@ npm run dev
 ```
 
 `npm run dev` uses `concurrently` to start (a) Vite at `localhost:5173` and
-(b) Electron (which itself forks `server.js` at `localhost:3000`).
+(b) Electron (which itself forks `server.js` at `localhost:3324`).
 `wait-on` makes Electron hold until Vite is ready. Vite's dev server proxies
 `/api`, `/audio`, `/preview-files` to the Express backend.
 
@@ -124,7 +124,7 @@ npm run vite     # Vite only (browser at localhost:5173)
 npm run electron # Electron only (assumes the others are already up)
 ```
 
-The Express backend honours `PORT` (default `3000`). All other env vars
+The Express backend honours `PORT` (default `3324`). All other env vars
 (`WAX_LIBRARY_DIR`, `WAX_PUBLIC_DIR`, `WAX_YT_DLP`, `WAX_FFMPEG`) are
 optional and only used by the packaged build.
 

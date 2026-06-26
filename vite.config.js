@@ -17,11 +17,11 @@ export default defineConfig({
     proxy: {
       // Forward API + audio + previews + jobs SSE to the Express backend
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:3324',
         changeOrigin: true,
       },
-      '/audio': 'http://localhost:3000',
-      '/preview-files': 'http://localhost:3000',
+      '/audio': 'http://localhost:3324',
+      '/preview-files': 'http://localhost:3324',
     },
   },
   build: {

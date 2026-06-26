@@ -1,6 +1,6 @@
-# CLAUDE.md — Wax codebase map
+# AGENTS.md — Wax codebase map
 
-This file is for **you, future Claude**. Read it first when starting a session on this repo. It's the fastest way back into the codebase without re-discovering everything from scratch.
+This file is for **you, future Codex**. Read it first when starting a session on this repo. It's the fastest way back into the codebase without re-discovering everything from scratch.
 
 ## TL;DR — what is this?
 
@@ -253,10 +253,10 @@ When the user asks to commit & push (any phrasing — "commit et pousse", "commi
    - **Minor** bump (1.0.0 → 1.1.0) — new feature, new endpoint, new view, new public store action.
    - **Major** bump (1.x → 2.0.0) — only when the user asks for it explicitly, or for a breaking change they flagged.
 2. **Update `README.md`** if the change is user-visible (new feature, removed feature, new install/build step, new dep). Skip if it's an internal refactor or a tiny fix.
-3. **Update `CLAUDE.md`** if architecture, files, stores, key flows, gotchas, or active TODOs shifted. Skip for cosmetic-only fixes.
+3. **Update `AGENTS.md`** if architecture, files, stores, key flows, gotchas, or active TODOs shifted. Skip for cosmetic-only fixes.
 4. **Then commit and push** in a single commit that includes the version bump + doc updates alongside the actual code change.
 
-Don't ask permission for any of the four — just do them. If a step is genuinely a no-op (e.g. CLAUDE.md needs no change), say so in one line in the reply.
+Don't ask permission for any of the four — just do them. If a step is genuinely a no-op (e.g. AGENTS.md needs no change), say so in one line in the reply.
 
 Commit message: imperative, French or English (match the codebase — recent history is mixed). Do NOT prepend `vX.Y.Z:` — the version lives in `package.json`, not in commit subjects.
 
